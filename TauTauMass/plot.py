@@ -41,8 +41,7 @@ def makePlots(sess, myDataManipulations):
 
     print(len(labels))
 
-    #pull = (modelResult - labels)/labels
-    pull = (modelResult - labels)
+    pull = (modelResult - labels)/labels
     print("Model: NN",
           "mean pull:", np.mean(pull),
           "pull RMS:", np.std(pull, ddof=1))

@@ -23,15 +23,21 @@ class dataManipulations:
         visMass = np.array(global_params["visMass"])
         leg1P4 = np.array(legs[0])
         leg2P4 = np.array(legs[1])
+        leg1GenP4 = np.array(legs[2])
+        leg2GenP4 = np.array(legs[3])        
+        leg2Properties = np.array(properties["leg_2_decayMode"])
         jet1P4 = np.array(jets[1])
-        jet2P4 = np.array(jets[2])
+        jet2P4 = np.array(jets[2])        
         met = np.array(jets[0][0:3])
 
         genMass = np.reshape(genMass, (-1,1))
         visMass = np.reshape(visMass, (-1,1))
         fastMTT = np.reshape(fastMTT, (-1,1))
+        leg2Properties = np.reshape(leg2Properties, (-1,1))
         leg1P4 = np.transpose(leg1P4)
         leg2P4 = np.transpose(leg2P4)
+        leg1GenP4 = np.transpose(leg1GenP4)
+        leg2GenP4 = np.transpose(leg2GenP4)        
         jet1P4 = np.transpose(jet1P4)
         jet2P4 = np.transpose(jet2P4)
         met = np.transpose(met)
@@ -52,10 +58,12 @@ class dataManipulations:
 
         metMag = np.reshape(metMag, (-1,1))    
 
-        features = np.hstack((genMass, fastMTT, visMass, leg1P4, leg2P4, leg1Pt, leg2Pt, met))
-        #features = np.hstack((genMass, fastMTT, leg1P4, leg2P4))
+        leg2GenEnergy = leg2GenP4[:,0]
+        leg2GenEnergy = np.reshape(leg2Energy, (-1,1))
+        features = np.hstack((genMass, fastMTT, visMass, leg1P4, leg2P4, leg1Pt, leg2Pt, leg2Properties, met))
 
-        #index = met[:,0]<10 
+        #Select events with MET>10
+        #index = met[:,0]>10 
         #features = features[index]
 
         index = features[:,0]<250 
