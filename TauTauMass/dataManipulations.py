@@ -59,7 +59,7 @@ class dataManipulations:
         metMag = np.reshape(metMag, (-1,1))    
 
         leg2GenEnergy = leg2GenP4[:,0]
-        leg2GenEnergy = np.reshape(leg2Energy, (-1,1))
+        leg2GenEnergy = np.reshape(leg2GenEnergy, (-1,1))
         features = np.hstack((genMass, fastMTT, visMass, leg1P4, leg2P4, leg1Pt, leg2Pt, leg2Properties, met))
 
         #Select events with MET>10
