@@ -28,6 +28,7 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
  
     yTrue = tf.get_default_graph().get_operation_by_name("input/y-input").outputs[0]
     keep_prob = tf.get_default_graph().get_operation_by_name("model/dropout/Placeholder").outputs[0]
+    trainingMode = tf.get_default_graph().get_operation_by_name("model/Placeholder").outputs[0]
 
     train_step = tf.get_default_graph().get_operation_by_name("model/train/Adam")
 
@@ -40,7 +41,8 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
 
     aTrainIterator, aValidationIterator = myDataManipulations.getCVFold(sess, iFold)
     numberOfBatches = myDataManipulations.numberOfBatches
-
+    accuracyValue = 0
+    
     #Train
     iBatch = -1
     iEpoch = 0
@@ -50,19 +52,24 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
             iBatch+=1
             iEpoch = (int)(iBatch/numberOfBatches)
 
-            sess.run([train_step], feed_dict={x: xs, yTrue: ys, keep_prob: FLAGS.dropout})
+            sess.run([train_step], feed_dict={x: xs, yTrue: ys, keep_prob: FLAGS.dropout, trainingMode: True})
 
             #Evaluate training performance
-            if(iEpoch%1000==0 and iBatch%numberOfBatches==0):
-                result = sess.run([mergedSummary, accuracy, lossL2, loss, y, yTrue], feed_dict={x: xs, yTrue: ys, keep_prob: 1.0})
+            if(iEpoch%100==0 and iBatch%numberOfBatches==0):
                 iStep = iEpoch + iFold*FLAGS.max_epoch
-
-                myTrainWriter.add_summary(result[0], iStep)
-                print("Epoch number:",iEpoch,
-                      "bunch number:",iBatch,
-                      "accuracy:", result[1],
-                      "regularisation loss",result[2],
-                      "total loss:",result[3])
+                resultTrain = sess.run([mergedSummary, accuracy, lossL2, loss, y, yTrue], feed_dict={x: xs, yTrue: ys, keep_prob: 1.0, trainingMode: False})
+                
+                xs, ys = makeFeedDict(sess, aValidationIterator)                
+                resultValidation = sess.run([mergedSummary,accuracy],
+                                            feed_dict={x: xs, yTrue: ys, keep_prob: 1.0, trainingMode: False})
+                
+                myTrainWriter.add_summary(resultTrain[0], iStep)
+                myValidationWriter.add_summary(resultValidation[0], iStep)
+                print("Epoch, bunch number:",iEpoch,iBatch)
+                print("     Train accuracy:", resultTrain[1],
+                      "regularisation loss",resultTrain[2],
+                      "total loss:",resultTrain[3])
+                print("Validation accuracy:", resultValidation[1])
                                               
         except tf.errors.OutOfRangeError:
             break
@@ -71,16 +78,17 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
     try:
         xs, ys = makeFeedDict(sess, aValidationIterator)
         result = sess.run([accuracy,  mergedSummary,  y, yTrue],
-                          feed_dict={x: xs, yTrue: ys, keep_prob: 1.0})
+                          feed_dict={x: xs, yTrue: ys, keep_prob: 1.0, trainingMode: False})
         accuracyValue = result[0]
         validationSummary = result[1]
         iStep = (iFold+1)*FLAGS.max_epoch - 1
         myValidationWriter.add_summary(validationSummary, iStep)
-        plotDiscriminant(result[2], result[3], "Validation", doBlock=True)
-        
+                
         print("Validation. Fold:",iFold,
               "Epoch:",iEpoch,
               "accuracy:", accuracyValue)
+        
+        plotDiscriminant(result[2], result[3], "Validation", doBlock=True)
         
     except tf.errors.OutOfRangeError:
         print("OutOfRangeError")
@@ -98,14 +106,14 @@ def train():
     for d in devices:
         print(d.name)
 
-    nFolds = 5
+    nFolds = 2
     nEpochs = FLAGS.max_epoch
     batchSize = 64
     fileName = FLAGS.train_data_file
     myDataManipulations = dataManipulations(fileName, nFolds, nEpochs, batchSize)
     
     numberOfFeatures = myDataManipulations.numberOfFeatures
-    nNeurons = [numberOfFeatures, 32, 32, 32, 32]
+    nNeurons = [numberOfFeatures, 32, 32, 32]
 
     # Input placeholders
     with tf.name_scope('input'): 
@@ -122,17 +130,15 @@ def train():
         merged = tf.summary.merge_all()
     myTrainWriter = tf.summary.FileWriter(FLAGS.log_dir + '/train', sess.graph)
     myValidationWriter = tf.summary.FileWriter(FLAGS.log_dir + '/validation', sess.graph)
-    ###############################################
-    '''
+    ###############################################    
     ops = tf.get_default_graph().get_operations()
     for op in ops:
-        print(op.name)
-    '''
+        print(op.name)    
     ###############################################
     accuracyTable = np.array([])
     lossTable = np.array([])
 
-    for iFold in range(0, nFolds):
+    for iFold in range(0, 1):
         sess.run(init)
         aAccuracy = runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWriter)
         accuracyTable = np.append(accuracyTable, aAccuracy)

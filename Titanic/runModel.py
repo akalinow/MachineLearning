@@ -32,18 +32,19 @@ def runModel(myDataManipulations):
     y = tf.get_default_graph().get_operation_by_name("model/performance/Sigmoid").outputs[0]
     yTrue = tf.get_default_graph().get_operation_by_name("input/y-input").outputs[0]
     keep_prob = tf.get_default_graph().get_operation_by_name("model/dropout/Placeholder").outputs[0]
+    trainingMode = tf.get_default_graph().get_operation_by_name("model/Placeholder").outputs[0]
 
     iFold = 0
     aTrainIterator, aValidationIterator = myDataManipulations.getCVFold(sess, iFold)
 
     xs, ys = makeFeedDict(sess, aValidationIterator)
-    result = sess.run([x, y], feed_dict={x: xs, yTrue: ys, keep_prob: 1.0})
+    result = sess.run([x, y], feed_dict={x: xs, yTrue: ys, keep_prob: 1.0, trainingMode: False})
     features = result[0]
     modelResult = result[1]
 
 
     xs, ys = makeFeedDict(sess, aTrainIterator)
-    result = sess.run([x, y], feed_dict={x: xs, yTrue: ys, keep_prob: 1.0})
+    result = sess.run([x, y], feed_dict={x: xs, yTrue: ys, keep_prob: 1.0, trainingMode: False})
     features = np.append(features,result[0],axis=0)
     modelResult = np.append(modelResult, result[1])
 

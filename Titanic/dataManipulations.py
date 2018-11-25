@@ -14,10 +14,18 @@ class dataManipulations:
         data = pd.read_csv(self.fileName, sep=',',header=0)
         data.replace(to_replace=dict(female=0, male=1), inplace=True)
         data.replace(to_replace=dict(C=1,Q=2,S=3), inplace=True)
+
+        data.replace(to_replace="([A])\d", value="1", inplace=True, regex=True)
+        data.replace(to_replace="([B])\d", value="2", inplace=True, regex=True)
+        data.replace(to_replace="([C])\d", value="3", inplace=True, regex=True)
+        data.replace(to_replace="([D])\d", value="4", inplace=True, regex=True)
+        data.replace(to_replace="([E])\d", value="5", inplace=True, regex=True)        
         data.fillna(value=0,inplace=True)
 
         features = data.values
-        #np.random.shuffle(features)    
+        np.random.shuffle(features)
+
+        print(features[0:10,:])
 
         ##Add dummy survived column for the test data
         print("shape: ",features.shape)
@@ -34,6 +42,9 @@ class dataManipulations:
         columnMask[8] = False #mask Ticket
         columnMask[10] = False #mask Cabin
         features = features[:,columnMask]
+
+        min_max_scaler = preprocessing.MinMaxScaler()
+        features = min_max_scaler.fit_transform(features)
                        
         self.numberOfFeatures = features.shape[1]             
         self.features_placeholder = tf.placeholder(tf.float32)
@@ -58,6 +69,7 @@ class dataManipulations:
 
         aDataset = tf.data.Dataset.from_tensor_slices((self.features_placeholder, self.labels_placeholder))
         self.validationDataset = aDataset.batch(len(self.labels))
+        self.validationDataset = self.validationDataset.repeat(self.nEpochs+1)
 
 
     def getDataIteratorAndInitializerOp(self, aDataset):

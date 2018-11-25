@@ -7,6 +7,8 @@ class Model:
 
     def addFCLayers(self):
 
+        trainingMode = tf.placeholder(tf.bool)
+
         for iLayer in range(1,self.nLayers):
             previousLayer = self.myLayers[iLayer-1]
             nInputs = self.nNeurons[iLayer-1]
@@ -15,8 +17,8 @@ class Model:
             #Workaround for a problem with shape infering. Is is better if the x placeholder has
             #indefinite shape. In this case we made the first layer by hand, and then on the shapes
             #are well defined.
-            if iLayer == 1:
-                aLayer = nn_layer(previousLayer, nInputs, self.nNeurons[iLayer], layerName, act=tf.nn.elu)
+            if iLayer < 10:
+                aLayer = nn_layer(previousLayer, nInputs, self.nNeurons[iLayer], layerName, trainingMode, act=tf.nn.elu)
             else:    
                 aLayer = tf.layers.dense(inputs = previousLayer, units = self.nNeurons[iLayer],
                                          name = layerName,
@@ -48,7 +50,10 @@ class Model:
             modelParameters   = tf.trainable_variables()
             tf.contrib.layers.apply_regularization(l2_regularizer, modelParameters)
             lossFunction = tf.losses.get_total_loss()
-            train_step = tf.train.AdamOptimizer(self.learning_rate).minimize(lossFunction)
+
+            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+            with tf.control_dependencies(update_ops):
+                train_step = tf.train.AdamOptimizer(self.learning_rate).minimize(lossFunction)
 
         with tf.name_scope('performance'):
             y = tf.nn.sigmoid(self.myLayers[-1])
