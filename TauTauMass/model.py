@@ -15,7 +15,7 @@ class Model:
             #Workaround for a problem with shape infering. Is is better fi the x placeholder has
             #indefinite shape. In this case we made the first layer by hand, and then on the shapes
             #are well defined.
-            if iLayer == 1:
+            if iLayer == 1 or True:
                 aLayer = nn_layer(previousLayer, nInputs, self.nNeurons[iLayer], layerName, act=tf.nn.elu)
             else:    
                 aLayer = tf.layers.dense(inputs = previousLayer, units = self.nNeurons[iLayer],
@@ -36,42 +36,54 @@ class Model:
 
         lastLayer = self.myLayers[-1]
         #Do not apply softmax activation yet as softmax is calculated during cross enetropy evaluation
-        aLayer = tf.layers.dense(inputs = lastLayer, units = 1,
-                                     name = 'output',
-                                     activation = tf.identity)
+        aLayer = tf.layers.dense(inputs = lastLayer, units = self.nOutputNeurons,
+                                 name = 'output',
+                                 activation = tf.identity)
         self.myLayers.append(aLayer)
 
     def defineOptimizationStrategy(self):              
         with tf.name_scope('train'):
             #absolute_difference = tf.losses.absolute_difference(labels=self.yTrue, predictions=self.myLayers[-1])
-            mean_squared_error = tf.losses.mean_squared_error(labels=self.yTrue, predictions=self.myLayers[-1])
+            #huber = tf.losses.huber_loss(labels=self.yTrue, predictions=self.myLayers[-1], weights=1.0, delta = 20.0)
+            if self.nOutputNeurons<2:
+                mean_squared_error = tf.losses.mean_squared_error(labels=self.yTrue, predictions=self.myLayers[-1])
+            else:    
+                onehot_labels = tf.one_hot(tf.to_int32(self.yTrue), depth=self.nOutputNeurons, axis=-1)
+                tf.losses.softmax_cross_entropy(onehot_labels=onehot_labels, logits=self.myLayers[-1])
+                
             l2_regularizer =tf.contrib.layers.l2_regularizer(self.lambdaLagrange)
             modelParameters   = tf.trainable_variables()
             tf.contrib.layers.apply_regularization(l2_regularizer, modelParameters)
-            #underestimateLoss = tf.to_float(tf.less(self.myLayers[-1], self.yTrue))
-            #tf.losses.add_loss(underestimateLoss)
             lossFunction = tf.losses.get_total_loss()
-            train_step = tf.train.AdamOptimizer(self.learning_rate).minimize(lossFunction)
-
+            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+            with tf.control_dependencies(update_ops):            
+                train_step = tf.train.AdamOptimizer(self.learning_rate).minimize(lossFunction)
+        
         with tf.name_scope('performance'):
-            y = self.myLayers[-1]
-            pull = (y - self.yTrue)/self.yTrue
-            pull_mean, pull_variance = tf.nn.moments(pull, axes=[0])            
-
+            response = self.myLayers[-1]
+            if self.nOutputNeurons>1:
+                response = tf.nn.softmax(response)
+                response = tf.math.argmax(response, axis=(1))
+                response = tf.to_float(response)
+                
+            response = tf.reshape(response, (-1,1))
+            pull = (response - self.yTrue)/self.yTrue
+            pull_mean, pull_variance = tf.nn.moments(pull, axes=[0],name="pull_moments")
+            
         tf.summary.scalar('loss', lossFunction)
         tf.summary.scalar('pull_rms', tf.sqrt(pull_variance[0]))
+        
+        
 
-    def __init__(self, x, yTrue, nNeurons, learning_rate, lambdaLagrange):
+    def __init__(self, x, yTrue, nNeurons, nOutputNeurons, learning_rate, lambdaLagrange):
 
         self.nNeurons = nNeurons
+        self.nOutputNeurons = nOutputNeurons
         
         self.nLayers = len(self.nNeurons)
 
         self.myLayers = [x]
 
-        #batchNormalized = tf.layers.batch_normalization(x)
-        #self.myLayers.append(batchNormalized)
-        
         self.yTrue = yTrue
 
         self.learning_rate = learning_rate

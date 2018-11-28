@@ -21,6 +21,7 @@ class dataManipulations:
         genMass = np.array(global_params["genMass"])
         fastMTT = np.array(global_params["fastMTTMass"])
         visMass = np.array(global_params["visMass"])
+        caMass = np.array(global_params["caMass"])
         leg1P4 = np.array(legs[0])
         leg2P4 = np.array(legs[1])
         leg1GenP4 = np.array(legs[2])
@@ -32,6 +33,7 @@ class dataManipulations:
 
         genMass = np.reshape(genMass, (-1,1))
         visMass = np.reshape(visMass, (-1,1))
+        caMass = np.reshape(caMass, (-1,1))
         fastMTT = np.reshape(fastMTT, (-1,1))
         leg2Properties = np.reshape(leg2Properties, (-1,1))
         leg1P4 = np.transpose(leg1P4)
@@ -58,36 +60,47 @@ class dataManipulations:
 
         metMag = np.reshape(metMag, (-1,1))    
 
-        leg2GenEnergy = leg2GenP4[:,0]
-        leg2GenEnergy = np.reshape(leg2Energy, (-1,1))
-        features = np.hstack((genMass, fastMTT, visMass, leg1P4, leg2P4, leg1Pt, leg2Pt, leg2Properties, met))
+        #leg2GenEnergy = leg2GenP4[:,0]
+        #leg2GenEnergy = np.reshape(leg2GenEnergy, (-1,1))
+        features = np.hstack((genMass, fastMTT, leg1P4, leg2P4, leg2Properties, met))
+        #features = np.hstack((genMass, fastMTT, fastMTT, leg1P4, leg2P4, leg1Pt, leg2Pt, leg2Properties))
 
         #Select events with MET>10
-        #index = met[:,0]>10 
-        #features = features[index]
+        index = met[:,0]>10 
+        features = features[index]
 
         index = features[:,0]<250 
         features = features[index]
 
         index = features[:,0]>50 
         features = features[index]
-        '''
-        index = features[:,0]>85 
-        features = features[index]
 
-        index = features[:,0]<95 
-        features = features[index]
-        '''
-
+        index = features[:,1]<250
+        #features = features[index]
+        
+        index = features[:,1]>2 
+        #features = features[index]
+        
         np.random.shuffle(features)
 
-        #Apply all transformations to fastMTT column, aswe want to plot it,
-        #but remove the fastMTT columnt from model features
+        #Quantize the output variable into self.nLabelBins
+        #or leave it as a floating point number
         labels = features[:,0]
+        if self.nLabelBins>1:
+            est = preprocessing.KBinsDiscretizer(n_bins=self.nLabelBins, encode='ordinal', strategy='uniform')
+            tmp = np.reshape(features[:,0], (-1, 1))
+            est.fit(tmp)
+            labels = est.transform(tmp) + 1#Avoid bin number 0
+        else:                
+            labels = features[:,0]
+
+        #Apply all transformations to fastMTT column, as we want to plot it,
+        #but remove the fastMTT column from model features
         fastMTT = features[:,1]
         features = features[:,2:]
 
         print("Input data shape:",features.shape)
+        print("Label bins:",self.nLabelBins)
 
         self.numberOfFeatures = features.shape[1]
              
@@ -112,7 +125,9 @@ class dataManipulations:
         self.trainDataset = self.trainDataset.repeat(self.nEpochs)
 
         aDataset = tf.data.Dataset.from_tensor_slices((self.features_placeholder, self.labels_placeholder))
+	#aDataset = aDataset.cache()
         self.validationDataset = aDataset.batch(10000)
+	
 
 
 
@@ -136,6 +151,7 @@ class dataManipulations:
 
         foldFeatures = self.features[trainIndexes]
         foldLabels = self.labels[trainIndexes]
+        
         feed_dict={self.features_placeholder: foldFeatures, self.labels_placeholder: foldLabels}
         sess.run(self.trainIt_InitOp, feed_dict=feed_dict)
 
@@ -146,12 +162,13 @@ class dataManipulations:
 
         return self.trainIterator.get_next(), self.validationIterator.get_next()
 
-    def __init__(self, fileName, nFolds, nEpochs, batchSize, smearMET=True):
+    def __init__(self, fileName, nFolds, nEpochs, batchSize, nLabelBins = -1, smearMET=True):
         self.fileName = fileName
         self.batchSize = batchSize
         self.nFolds = nFolds
         self.nEpochs = nEpochs
         self.smearMET = smearMET
+        self.nLabelBins = nLabelBins
 
         self.getNumpyMatricesFromRawData()
         self.makeCVFoldGenerator()

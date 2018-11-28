@@ -9,7 +9,7 @@ import sys
 import tensorflow as tf
 import numpy as np
 from dataManipulations import *
-from plotUtilities import *
+#from plotUtilities import *
 from model import *
 
 FLAGS = None
@@ -31,8 +31,9 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
 
     train_step = tf.get_default_graph().get_operation_by_name("model/train/Adam")
 
-    pull_mean = tf.get_default_graph().get_operation_by_name("model/performance/moments/mean").outputs[0]
-    pull_variance = tf.get_default_graph().get_operation_by_name("model/performance/moments/variance").outputs[0]
+    pull_mean = tf.get_default_graph().get_operation_by_name("model/performance/pull_moments/mean").outputs[0]
+    pull_variance = tf.get_default_graph().get_operation_by_name("model/performance/pull_moments/variance").outputs[0]
+    response = tf.get_default_graph().get_operation_by_name("model/performance/Reshape").outputs[0]
 
     loss = tf.get_default_graph().get_operation_by_name("model/train/total_loss").outputs[0]
     lossL2 = tf.get_default_graph().get_operation_by_name("model/train/get_regularization_penalty").outputs[0]
@@ -57,7 +58,7 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
             if(iEpoch%10==0 and iBatch%numberOfBatches==0):
                 result = sess.run([pull_variance, mergedSummary, loss], feed_dict={x: xs, yTrue: ys, keep_prob: 1.0})
                 iStep = iEpoch + iFold*FLAGS.max_epoch
-                variance = result[0][0]
+                variance = result[0]
                 trainSummary = result[1]
                 modelLoss = result[2]
                 myTrainWriter.add_summary(trainSummary, iStep)
@@ -87,7 +88,7 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
         result = sess.run([y, yTrue], feed_dict={x: xs, yTrue: ys, keep_prob: 1.0})
         modelResult = result[0]
         labels = result[1]            
-        plotDiscriminant(modelResult, labels, "Validation")
+        #plotDiscriminant(modelResult, labels, "Validation")
     except tf.errors.OutOfRangeError:
         print("OutOfRangeError")
 ##############################################################################
@@ -106,9 +107,11 @@ def train():
     nEpochs = FLAGS.max_epoch
     batchSize = 128
     fileName = FLAGS.train_data_file
-    myDataManipulations = dataManipulations(fileName, nFolds, nEpochs, batchSize, smearMET=True)        
+    nLabelBins = 1
+    myDataManipulations = dataManipulations(fileName, nFolds, nEpochs, batchSize, nLabelBins,  smearMET=False)        
     numberOfFeatures = myDataManipulations.numberOfFeatures
-    nNeurons = [numberOfFeatures, 128, 128]
+    nNeurons = [numberOfFeatures, 64, 64, 64]
+    nOutputNeurons = nLabelBins
 
     # Input placeholders
     with tf.name_scope('input'): 
@@ -116,23 +119,23 @@ def train():
         yTrue = tf.placeholder(tf.float32, name='y-input')
 
     with tf.name_scope('model'): 
-        myModel = Model(x, yTrue, nNeurons, FLAGS.learning_rate, FLAGS.lambda_lagrange)
+        myModel = Model(x, yTrue, nNeurons, nOutputNeurons, FLAGS.learning_rate, FLAGS.lambda_lagrange)
 
     init = tf.global_variables_initializer()
     sess.run(init)
+
     # Merge all the summaries and write them out to
     with tf.name_scope('monitor'): 
         merged = tf.summary.merge_all()
     myTrainWriter = tf.summary.FileWriter(FLAGS.log_dir + '/train', sess.graph)
     myValidationWriter = tf.summary.FileWriter(FLAGS.log_dir + '/validation', sess.graph)
-    ###############################################
-    '''
+    ###############################################    
     ops = tf.get_default_graph().get_operations()
     for op in ops:
-        print(op.name)
-    '''
+        print(op.name)    
     ###############################################
     sess.run(init)
+
     iFold = 0
     runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWriter)
 
@@ -173,7 +176,7 @@ if __name__ == '__main__':
   parser.add_argument('--lambda_lagrange', type=float, default=0.1,
                       help='Largange multipler for L2 loss')
 
-  parser.add_argument('--dropout', type=float, default=0.9,
+  parser.add_argument('--dropout', type=float, default=1.0,
                       help='Keep probability for training dropout.')
 
   parser.add_argument('--train_data_file', type=str,

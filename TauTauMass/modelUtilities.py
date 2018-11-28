@@ -54,7 +54,10 @@ def nn_layer(input_tensor, input_dim, output_dim, layer_name, act=tf.nn.relu):
       with tf.name_scope('Wx_plus_b'):
         preactivate = tf.matmul(input_tensor, weights) + biases
         tf.summary.histogram('pre_activations', preactivate)
-      activations = act(preactivate, name='activation')
+        batchNormalization = tf.layers.batch_normalization(preactivate, training=True)
+        tf.summary.histogram('batchNormalization', batchNormalization)
+      activations = act(batchNormalization, name='activation')
+      #activations = act(preactivate, name='activation')
       tf.summary.histogram('activations', activations)
       return activations
 ##############################################################################
