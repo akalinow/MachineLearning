@@ -33,7 +33,7 @@ def makePlots(sess, myDataManipulations):
    
     xs, ys = makeFeedDict(sess, aTrainIterator)
     result = sess.run([x, y, yTrue], feed_dict={x: xs, yTrue: ys, keep_prob: 1.0})
-    '''    
+       
     prob = tf.nn.softmax(logits=y)
     onehot_labels = tf.one_hot(tf.to_int32(yTrue), depth=10, axis=-1)
     result = sess.run([x, y, yTrue, prob, onehot_labels], feed_dict={x: xs, yTrue: ys, keep_prob: 1.0})
@@ -46,7 +46,7 @@ def makePlots(sess, myDataManipulations):
     plt.plot(onehot[0],"r")
     plt.show()
     return
-    '''
+    
     
     modelInput = result[0]
     modelResult = result[1]
