@@ -26,7 +26,7 @@ class dataManipulations:
         features = np.hstack((sampleType, features))
         np.random.shuffle(features)
 
-        labels = 1 - features[:,0]
+        labels = features[:,0]
         features = features[:,1:]
 
         print("Input data shape:",features.shape)

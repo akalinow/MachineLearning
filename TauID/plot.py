@@ -33,12 +33,12 @@ def makePlots(sess, myDataManipulations):
     result = sess.run([y, yTrue], feed_dict={x: features, yTrue: labels, keep_prob: 1.0, trainingMode: False})
     modelResult = result[0]
     modelResult = np.reshape(modelResult,(1,-1))[0]
-    modelResult = 1 - modelResult
     
     modelResults = {"training": modelResult,
                     "DPFv1":features[:,-1],
                     "deepTau":features[:,0],
-                    "MVA2017v2":features[:,-4]}
+                    "MVA2017v2":features[:,-4]
+    }
 
     indexesS = labels==1
     signalResponse = modelResult[indexesS]
@@ -76,7 +76,7 @@ def plot():
             print(d.name)
 
         nEpochs = 1
-        batchSize = 100000
+        batchSize = 100
         nFolds = 2
         fileName = FLAGS.test_data_file
 
