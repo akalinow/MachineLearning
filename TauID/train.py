@@ -105,14 +105,14 @@ def train():
     for d in devices:
         print(d.name)
 
-    nFolds = 2
+    nFolds = 5
     nEpochs = FLAGS.max_epoch
     batchSize = 64
     fileName = FLAGS.train_data_file
     myDataManipulations = dataManipulations(fileName, nFolds, nEpochs, batchSize)
     
     numberOfFeatures = myDataManipulations.numberOfFeatures
-    nNeurons = [numberOfFeatures, 32, 32, 32]
+    nNeurons = [numberOfFeatures, 1]
 
     # Input placeholders
     with tf.name_scope('input'): 
