@@ -23,9 +23,7 @@ class dataManipulations:
         data.fillna(value=0,inplace=True)
 
         features = data.values
-        np.random.shuffle(features)
-
-        print(features[0:10,:])
+        #np.random.shuffle(features)
 
         ##Add dummy survived column for the test data
         print("shape: ",features.shape)
@@ -37,11 +35,21 @@ class dataManipulations:
         self.labels = features[:,1]
         columnMask = np.full(features.shape[1], True)
         columnMask[0] = False #mask PassengerId
-        columnMask[1] = False #mask Survived
+        #columnMask[1] = False #mask Survived
+        columnMask[2] = False #mask Pclass
         columnMask[3] = False #mask Name
+        columnMask[4] = False #mask Sex
+        columnMask[5] = False #mask Age
+        columnMask[6] = False #mask SibSp
+        columnMask[7] = False #mask Parch        
         columnMask[8] = False #mask Ticket
+        columnMask[9] = False #mask Fare
         columnMask[10] = False #mask Cabin
+        columnMask[11] = False #mask Embarked
+        
         features = features[:,columnMask]
+
+        print(features[0:3,:])
 
         min_max_scaler = preprocessing.MinMaxScaler()
         features = min_max_scaler.fit_transform(features)
