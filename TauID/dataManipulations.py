@@ -22,11 +22,34 @@ class dataManipulations:
         sampleType = np.reshape(sampleType, (-1,1))
         features = np.array(list(properties.values()))
         features = np.transpose(features)
+        featuresNames = list(properties.keys())
+
+        #Redefine DPF output to be 1 for signal
+        discName = "leg_2_DPFTau_2016_v1tauVSall"
+        DPF_index = featuresNames.index(discName)
+        features[:,DPF_index] *= -1
+        features[:,DPF_index] +=  1
+        indexes = features[:,DPF_index]>1
+        print(indexes)
+        features[indexes,DPF_index] = -0.25
+        #Filter features to be usedfor training        
+        columnMask = np.full(features.shape[1], False)
+        oldMVA_discriminators = ["leg_2_byIsolationMVArun2v1DBoldDMwLTraw",
+                                 "leg_2_byIsolationMVArun2v1DBoldDMwLTraw2017v2",
+                                 "leg_2_DPFTau_2016_v1tauVSall",                              
+                                 "leg_2_deepTau2017v1tauVSall"]
+        for discName in oldMVA_discriminators:          
+            index = featuresNames.index(discName)
+            print("Enabling feature:",discName)
+            columnMask[index] = True 
+                    
+        features = features[:,columnMask]
+        ########################################
 
         features = np.hstack((sampleType, features))
         np.random.shuffle(features)
 
-        labels = 1 - features[:,0]
+        labels = features[:,0]
         features = features[:,1:]
 
         print("Input data shape:",features.shape)
@@ -40,7 +63,10 @@ class dataManipulations:
         self.features = features
         self.labels = labels
 
-
+        tmp = np.array(featuresNames)
+        tmp = tmp[columnMask]
+        self.featuresNames = list(tmp)
+                
     def makeCVFoldGenerator(self):
 
         foldSplitter = KFold(n_splits=self.nFolds)

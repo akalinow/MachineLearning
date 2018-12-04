@@ -29,16 +29,19 @@ def makePlots(sess, myDataManipulations):
     trainingMode = tf.get_default_graph().get_operation_by_name("model/Placeholder").outputs[0]
 
     features = myDataManipulations.features
+    featuresNames = myDataManipulations.featuresNames
     labels = myDataManipulations.labels
     result = sess.run([y, yTrue], feed_dict={x: features, yTrue: labels, keep_prob: 1.0, trainingMode: False})
     modelResult = result[0]
     modelResult = np.reshape(modelResult,(1,-1))[0]
-    modelResult = 1 - modelResult
-    
+
     modelResults = {"training": modelResult,
-                    "DPFv1":features[:,-1],
-                    "deepTau":features[:,0],
-                    "MVA2017v2":features[:,-4]}
+                    "DPFv1":features[:,featuresNames.index("leg_2_DPFTau_2016_v1tauVSall")],
+                    "deepTau":features[:,featuresNames.index("leg_2_deepTau2017v1tauVSall")],
+                    "MVA2017v2":features[:,featuresNames.index("leg_2_byIsolationMVArun2v1DBoldDMwLTraw2017v2")],
+    }
+
+    #modelResult = features[:,featuresNames.index("leg_2_byIsolationMVArun2v1DBoldDMwLTraw2017v2")]
 
     indexesS = labels==1
     signalResponse = modelResult[indexesS]
@@ -76,7 +79,7 @@ def plot():
             print(d.name)
 
         nEpochs = 1
-        batchSize = 100000
+        batchSize = 100
         nFolds = 2
         fileName = FLAGS.test_data_file
 
