@@ -27,8 +27,8 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
     #y = tf.get_default_graph().get_operation_by_name("model/output/Identity").outputs[0]
  
     yTrue = tf.get_default_graph().get_operation_by_name("input/y-input").outputs[0]
-    keep_prob = tf.get_default_graph().get_operation_by_name("model/dropout/Placeholder").outputs[0]
-    trainingMode = tf.get_default_graph().get_operation_by_name("model/Placeholder").outputs[0]
+    dropout_prob = tf.get_default_graph().get_operation_by_name("model/dropout_prob").outputs[0]
+    trainingMode = tf.get_default_graph().get_operation_by_name("model/trainingMode").outputs[0]
 
     train_step = tf.get_default_graph().get_operation_by_name("model/train/Adam")
 
@@ -52,16 +52,16 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
             iBatch+=1
             iEpoch = (int)(iBatch/numberOfBatches)
 
-            sess.run([train_step], feed_dict={x: xs, yTrue: ys, keep_prob: FLAGS.dropout, trainingMode: True})
+            sess.run([train_step], feed_dict={x: xs, yTrue: ys, dropout_prob: FLAGS.dropout, trainingMode: True})
 
             #Evaluate training performance
             if(iEpoch%100==0 and iBatch%numberOfBatches==0):
                 iStep = iEpoch + iFold*FLAGS.max_epoch
-                resultTrain = sess.run([mergedSummary, accuracy, lossL2, loss, y, yTrue], feed_dict={x: xs, yTrue: ys, keep_prob: 1.0, trainingMode: False})
+                resultTrain = sess.run([mergedSummary, accuracy, lossL2, loss, y, yTrue], feed_dict={x: xs, yTrue: ys, dropout_prob: 0.0, trainingMode: False})
                 
                 xs, ys = makeFeedDict(sess, aValidationIterator)                
                 resultValidation = sess.run([mergedSummary,accuracy],
-                                            feed_dict={x: xs, yTrue: ys, keep_prob: 1.0, trainingMode: False})
+                                            feed_dict={x: xs, yTrue: ys, dropout_prob: 0.0, trainingMode: False})
                 
                 myTrainWriter.add_summary(resultTrain[0], iStep)
                 myValidationWriter.add_summary(resultValidation[0], iStep)
@@ -78,7 +78,7 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
     try:
         xs, ys = makeFeedDict(sess, aValidationIterator)
         result = sess.run([accuracy,  mergedSummary,  y, yTrue],
-                          feed_dict={x: xs, yTrue: ys, keep_prob: 1.0, trainingMode: False})
+                          feed_dict={x: xs, yTrue: ys, dropout_prob: 0.0, trainingMode: False})
         accuracyValue = result[0]
         validationSummary = result[1]
         iStep = (iFold+1)*FLAGS.max_epoch - 1
@@ -113,7 +113,7 @@ def train():
     myDataManipulations = dataManipulations(fileName, nFolds, nEpochs, batchSize)
     
     numberOfFeatures = myDataManipulations.numberOfFeatures
-    nNeurons = [numberOfFeatures, 32, 32, 32]
+    nNeurons = [numberOfFeatures, 1]
 
     # Input placeholders
     with tf.name_scope('input'): 
@@ -130,15 +130,18 @@ def train():
         merged = tf.summary.merge_all()
     myTrainWriter = tf.summary.FileWriter(FLAGS.log_dir + '/train', sess.graph)
     myValidationWriter = tf.summary.FileWriter(FLAGS.log_dir + '/validation', sess.graph)
-    ###############################################    
+    ###############################################
+    '''
     ops = tf.get_default_graph().get_operations()
     for op in ops:
         print(op.name)    
+    '''
     ###############################################
     accuracyTable = np.array([])
     lossTable = np.array([])
 
-    for iFold in range(0, 1):
+    nFolds = 1
+    for iFold in range(0, nFolds):
         sess.run(init)
         aAccuracy = runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWriter)
         accuracyTable = np.append(accuracyTable, aAccuracy)
@@ -186,7 +189,7 @@ if __name__ == '__main__':
                       help='Largange multipler for L2 loss')
 
   parser.add_argument('--dropout', type=float, default=1.0,
-                      help='Keep probability for training dropout.')
+                      help='Drop probability for training dropout.')
 
   parser.add_argument('--train_data_file', type=str,
       default=os.path.join(os.getenv('PWD', './'),

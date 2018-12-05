@@ -7,31 +7,33 @@ class Model:
 
     def addFCLayers(self):
 
-        trainingMode = tf.placeholder(tf.bool)
-
         for iLayer in range(1,self.nLayers):
-            previousLayer = self.myLayers[iLayer-1]
-            nInputs = self.nNeurons[iLayer-1]
+            previousLayer = self.myLayers[iLayer - 1]
+            nInputs = self.nNeurons[iLayer - 1]
+            nOutputs = self.nNeurons[iLayer]
             layerName =  'hidden'+str(iLayer)
+
+            print("nInputs:",nInputs,"nOutputs:",self.nNeurons[iLayer])
 
             #Workaround for a problem with shape infering. Is is better if the x placeholder has
             #indefinite shape. In this case we made the first layer by hand, and then on the shapes
             #are well defined.
             if iLayer < 10:
-                aLayer = nn_layer(previousLayer, nInputs, self.nNeurons[iLayer], layerName, trainingMode, act=tf.nn.elu)
+                aLayer = nn_layer(previousLayer, nInputs, nOutputs, layerName, self.trainingMode, act=tf.nn.sigmoid)
             else:    
                 aLayer = tf.layers.dense(inputs = previousLayer, units = self.nNeurons[iLayer],
                                          name = layerName,
                                          activation = tf.nn.elu)
             self.myLayers.append(aLayer)
+            #self.addDropoutLayer()
+                    
 
     def addDropoutLayer(self):
 
         lastLayer = self.myLayers[-1]
 
-        with tf.name_scope('dropout'):
-            keep_prob = tf.placeholder(tf.float32)
-            aLayer = tf.layers.dropout(inputs = lastLayer, rate = keep_prob)
+        with tf.name_scope('dropout'):            
+            aLayer = tf.layers.dropout(inputs = lastLayer, rate = self.dropout_prob, training=self.trainingMode)
             self.myLayers.append(aLayer)
 
     def addOutputLayer(self):
@@ -67,19 +69,22 @@ class Model:
 
     def __init__(self, x, yTrue, nNeurons, learning_rate, lambdaLagrange):
 
-        self.nNeurons = nNeurons
-        
-        self.nLayers = len(self.nNeurons)
-
-        self.myLayers = [x]
-
         self.yTrue = yTrue
 
         self.learning_rate = learning_rate
         self.lambdaLagrange = lambdaLagrange
 
+        self.trainingMode = tf.placeholder(tf.bool, name="trainingMode")
+        self.dropout_prob = tf.placeholder(tf.float32, name="dropout_prob")
+
+        self.myLayers = [x]
+
+        self.nLayers = len(nNeurons)
+        self.nNeurons = nNeurons
+                        
         self.addFCLayers()
         self.addDropoutLayer()
+
         self.addOutputLayer()
         self.defineOptimizationStrategy()
 ##############################################################################
