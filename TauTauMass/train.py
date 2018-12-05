@@ -28,6 +28,7 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
  
     yTrue = tf.get_default_graph().get_operation_by_name("input/y-input").outputs[0]
     keep_prob = tf.get_default_graph().get_operation_by_name("model/dropout/Placeholder").outputs[0]
+    dropout = tf.get_default_graph().get_operation_by_name("model/dropout/dropout/Identity").outputs[0]
 
     train_step = tf.get_default_graph().get_operation_by_name("model/train/Adam")
 
@@ -52,11 +53,14 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
             iBatch+=1
             iEpoch = (int)(iBatch/numberOfBatches)
 
-            sess.run([train_step], feed_dict={x: xs, yTrue: ys, keep_prob: FLAGS.dropout})
+            sess.run([train_step, dropout], feed_dict={x: xs, yTrue: ys, keep_prob: FLAGS.dropout})
 
             #Evaluate training performance
             if(iEpoch%10==0 and iBatch%numberOfBatches==0):
-                result = sess.run([pull_variance, mergedSummary, loss], feed_dict={x: xs, yTrue: ys, keep_prob: 1.0})
+                result = sess.run([pull_variance, mergedSummary, loss, dropout], feed_dict={x: xs, yTrue: ys, keep_prob: 0.5})
+
+                print("dropout:",result[3])
+                            
                 iStep = iEpoch + iFold*FLAGS.max_epoch
                 variance = result[0]
                 trainSummary = result[1]
@@ -105,7 +109,7 @@ def train():
 
     nFolds = 2 #data split into equal training and validation parts
     nEpochs = FLAGS.max_epoch
-    batchSize = 4096
+    batchSize = 1
     fileName = FLAGS.train_data_file
     nLabelBins = 10
     myDataManipulations = dataManipulations(fileName, nFolds, nEpochs, batchSize, nLabelBins,  smearMET=False)        

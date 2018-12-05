@@ -9,7 +9,7 @@ import sys
 import tensorflow as tf
 import numpy as np
 from dataManipulations import *
-from plotUtilities import *
+#from plotUtilities import *
 from model import *
 
 FLAGS = None
@@ -26,14 +26,15 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
     x = tf.get_default_graph().get_operation_by_name("input/x-input").outputs[0]
  
     yTrue = tf.get_default_graph().get_operation_by_name("input/y-input").outputs[0]
-    keep_prob = tf.get_default_graph().get_operation_by_name("model/dropout/Placeholder").outputs[0]
-    trainingMode = tf.get_default_graph().get_operation_by_name("model/Placeholder").outputs[0]
+           
+    dropout_prob = tf.get_default_graph().get_operation_by_name("model/dropout_prob").outputs[0]
+    trainingMode = tf.get_default_graph().get_operation_by_name("model/trainingMode").outputs[0]
 
     train_step = tf.get_default_graph().get_operation_by_name("model/train/Adam")
 
     loss = tf.get_default_graph().get_operation_by_name("model/train/total_loss").outputs[0]
     lossL2 = tf.get_default_graph().get_operation_by_name("model/train/get_regularization_penalty").outputs[0]
-    accuracy = tf.get_default_graph().get_operation_by_name("model/performance/Mean").outputs[0]
+    accuracy = tf.get_default_graph().get_operation_by_name("model/performance/accuracy/update_op").outputs[0]
     y = tf.get_default_graph().get_operation_by_name("model/performance/Sigmoid").outputs[0]
 
     mergedSummary = tf.get_default_graph().get_operation_by_name("monitor/Merge/MergeSummary").outputs[0]
@@ -51,16 +52,16 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
             iBatch+=1
             iEpoch = (int)(iBatch/numberOfBatches)
 
-            sess.run([train_step], feed_dict={x: xs, yTrue: ys, keep_prob: FLAGS.dropout, trainingMode: True})
+            sess.run([train_step], feed_dict={x: xs, yTrue: ys, dropout_prob: FLAGS.dropout, trainingMode: True})
 
             #Evaluate training performance
-            if(iEpoch%100==0 and iBatch%numberOfBatches==0):
+            if(iEpoch%10==0 and iBatch%numberOfBatches==0):
                 iStep = iEpoch + iFold*FLAGS.max_epoch
-                resultTrain = sess.run([mergedSummary, accuracy, lossL2, loss, y, yTrue], feed_dict={x: xs, yTrue: ys, keep_prob: 1.0, trainingMode: False})
-                
+                resultTrain = sess.run([mergedSummary, accuracy, lossL2, loss], feed_dict={x: xs, yTrue: ys, dropout_prob: 0.0, trainingMode: False})
+
                 xs, ys = makeFeedDict(sess, aValidationIterator)                
                 resultValidation = sess.run([mergedSummary,accuracy],
-                                            feed_dict={x: xs, yTrue: ys, keep_prob: 1.0, trainingMode: False})
+                                            feed_dict={x: xs, yTrue: ys, dropout_prob: 0.0, trainingMode: False})
                 
                 myTrainWriter.add_summary(resultTrain[0], iStep)
                 myValidationWriter.add_summary(resultValidation[0], iStep)
@@ -77,7 +78,7 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
     try:
         xs, ys = makeFeedDict(sess, aValidationIterator)
         result = sess.run([accuracy,  mergedSummary,  y, yTrue],
-                          feed_dict={x: xs, yTrue: ys, keep_prob: 1.0, trainingMode: False})
+                          feed_dict={x: xs, yTrue: ys, dropout_prob: 0.0, trainingMode: False})
         accuracyValue = result[0]
         validationSummary = result[1]
         iStep = (iFold+1)*FLAGS.max_epoch - 1
@@ -87,7 +88,7 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
               "Epoch:",iEpoch,
               "accuracy:", accuracyValue)
         
-        plotDiscriminant(result[2], result[3], "Validation", doBlock=True)
+        #plotDiscriminant(result[2], result[3], "Validation", doBlock=True)
         
     except tf.errors.OutOfRangeError:
         print("OutOfRangeError")
@@ -98,8 +99,9 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
 ##############################################################################
 def train():
 
+    #sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
     sess = tf.Session()
-
+    
     print("Available devices:")
     devices = sess.list_devices()
     for d in devices:
@@ -107,12 +109,12 @@ def train():
 
     nFolds = 5
     nEpochs = FLAGS.max_epoch
-    batchSize = 64
+    batchSize = 4096
     fileName = FLAGS.train_data_file
     myDataManipulations = dataManipulations(fileName, nFolds, nEpochs, batchSize)
     
     numberOfFeatures = myDataManipulations.numberOfFeatures
-    nNeurons = [numberOfFeatures, 1]
+    nNeurons = [numberOfFeatures, 32, 32, 32, 32]
 
     # Input placeholders
     with tf.name_scope('input'): 
@@ -122,23 +124,26 @@ def train():
     with tf.name_scope('model'): 
         myModel = Model(x, yTrue, nNeurons, FLAGS.learning_rate, FLAGS.lambda_lagrange)
 
-    init = tf.global_variables_initializer()
-    sess.run(init)
+    init_global = tf.global_variables_initializer()
+    init_local = tf.local_variables_initializer()
+    sess.run([init_global, init_local])
     # Merge all the summaries and write them out to
     with tf.name_scope('monitor'): 
         merged = tf.summary.merge_all()
     myTrainWriter = tf.summary.FileWriter(FLAGS.log_dir + '/train', sess.graph)
     myValidationWriter = tf.summary.FileWriter(FLAGS.log_dir + '/validation', sess.graph)
-    ###############################################    
+    ###############################################
+    '''
     ops = tf.get_default_graph().get_operations()
     for op in ops:
         print(op.name)    
+    '''
     ###############################################
     accuracyTable = np.array([])
     lossTable = np.array([])
 
     for iFold in range(0, 1):
-        sess.run(init)
+        sess.run([init_global, init_local])
         aAccuracy = runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWriter)
         accuracyTable = np.append(accuracyTable, aAccuracy)
 
@@ -184,8 +189,8 @@ if __name__ == '__main__':
   parser.add_argument('--lambda_lagrange', type=float, default=0.1,
                       help='Largange multipler for L2 loss')
 
-  parser.add_argument('--dropout', type=float, default=1.0,
-                      help='Keep probability for training dropout.')
+  parser.add_argument('--dropout', type=float, default=0.2,
+                      help='Drop probability for training dropout.')
 
   parser.add_argument('--train_data_file', type=str,
       default=os.path.join(os.getenv('PWD', './'),

@@ -53,9 +53,9 @@ def nn_layer(input_tensor, input_dim, output_dim, layer_name, trainingMode, act=
         variable_summaries(biases)
       with tf.name_scope('Wx_plus_b'):
         preactivate = tf.matmul(input_tensor, weights) + biases
+        #preactivate = tf.layers.batch_normalization(preactivate, training=trainingMode)  
         tf.summary.histogram('pre_activations', preactivate)
 
-      preactivate = tf.layers.batch_normalization(preactivate, training=trainingMode)  
       activations = act(preactivate, name='activation')
       tf.summary.histogram('activations', activations)
       return activations

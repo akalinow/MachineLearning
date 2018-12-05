@@ -7,8 +7,6 @@ class Model:
 
     def addFCLayers(self):
 
-        trainingMode = tf.placeholder(tf.bool)
-
         for iLayer in range(1,self.nLayers):
             previousLayer = self.myLayers[iLayer-1]
             nInputs = self.nNeurons[iLayer-1]
@@ -18,7 +16,7 @@ class Model:
             #indefinite shape. In this case we made the first layer by hand, and then on the shapes
             #are well defined.
             if iLayer < 10:
-                aLayer = nn_layer(previousLayer, nInputs, self.nNeurons[iLayer], layerName, trainingMode, act=tf.nn.elu)
+                aLayer = nn_layer(previousLayer, nInputs, self.nNeurons[iLayer], layerName, self.trainingMode, act=tf.nn.elu)
             else:    
                 aLayer = tf.layers.dense(inputs = previousLayer, units = self.nNeurons[iLayer],
                                          name = layerName,
@@ -30,8 +28,7 @@ class Model:
         lastLayer = self.myLayers[-1]
 
         with tf.name_scope('dropout'):
-            keep_prob = tf.placeholder(tf.float32)
-            aLayer = tf.layers.dropout(inputs = lastLayer, rate = keep_prob)
+            aLayer = tf.layers.dropout(inputs = lastLayer, rate = self.dropout_prob, training=self.trainingMode)
             self.myLayers.append(aLayer)
 
     def addOutputLayer(self):
@@ -45,7 +42,8 @@ class Model:
 
     def defineOptimizationStrategy(self):              
         with tf.name_scope('train'):
-            sigmoid_cross_entropy = tf.losses.sigmoid_cross_entropy(multi_class_labels=self.yTrue, logits=self.myLayers[-1])
+            samplesWeights = tf.to_float(self.yTrue>0.5) + 100
+            sigmoid_cross_entropy = tf.losses.sigmoid_cross_entropy(multi_class_labels=self.yTrue, logits=self.myLayers[-1], weights=samplesWeights)
             l2_regularizer =tf.contrib.layers.l2_regularizer(self.lambdaLagrange)
             modelParameters   = tf.trainable_variables()
             tf.contrib.layers.apply_regularization(l2_regularizer, modelParameters)
@@ -57,13 +55,11 @@ class Model:
 
         with tf.name_scope('performance'):
             y = tf.nn.sigmoid(self.myLayers[-1])
-            y = tf.greater(y, 0.5)
-            y = tf.cast(y, tf.float32)
-            is_correct_prediction = tf.equal(y, self.yTrue)
-            accuracy = tf.reduce_mean(tf.cast(is_correct_prediction, tf.float32))
+            accuracy = tf.metrics.accuracy(self.yTrue, y>0.5, weights=samplesWeights)
+            #accuracy = tf.reduce_mean(is_correct_prediction)
 
         tf.summary.scalar('loss', lossFunction)
-        tf.summary.scalar('accuracy', accuracy)
+        #tf.summary.scalar('accuracy', accuracy)
 
     def __init__(self, x, yTrue, nNeurons, learning_rate, lambdaLagrange):
 
@@ -77,6 +73,9 @@ class Model:
 
         self.learning_rate = learning_rate
         self.lambdaLagrange = lambdaLagrange
+
+        self.trainingMode = tf.placeholder(tf.bool, name="trainingMode")
+        self.dropout_prob = tf.placeholder(tf.float32, name="dropout_prob")
 
         self.addFCLayers()
         self.addDropoutLayer()

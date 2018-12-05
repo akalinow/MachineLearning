@@ -30,18 +30,18 @@ class dataManipulations:
         features[:,DPF_index] *= -1
         features[:,DPF_index] +=  1
         indexes = features[:,DPF_index]>1
-        print(indexes)
-        features[indexes,DPF_index] = -0.25
+        features[indexes,DPF_index] = 0.0
         #Filter features to be usedfor training        
-        columnMask = np.full(features.shape[1], False)
-        oldMVA_discriminators = ["leg_2_byIsolationMVArun2v1DBoldDMwLTraw",
-                                 "leg_2_byIsolationMVArun2v1DBoldDMwLTraw2017v2",
+        columnMask = np.full(features.shape[1], True)
+        oldMVA_discriminators = ["leg_2_byIsolationMVArun2v1DBnewDMwLTraw2017v2",
                                  "leg_2_DPFTau_2016_v1tauVSall",                              
-                                 "leg_2_deepTau2017v1tauVSall"]
+                                 "leg_2_deepTau2017v1tauVSall",
+                                 "leg_2_deepTau2017v1tauVSjet",
+                                 ]
         for discName in oldMVA_discriminators:          
             index = featuresNames.index(discName)
             print("Enabling feature:",discName)
-            columnMask[index] = True 
+            columnMask[index] = True
                     
         features = features[:,columnMask]
         ########################################
@@ -53,7 +53,9 @@ class dataManipulations:
         features = features[:,1:]
 
         print("Input data shape:",features.shape)
-
+        print("Number of positive examples:",(labels>0.5).sum())
+        print("Number of negative examples:",(labels<0.5).sum())
+              
         self.numberOfFeatures = features.shape[1]
              
         assert features.shape[0] == labels.shape[0]
