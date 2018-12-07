@@ -32,7 +32,7 @@ class dataManipulations:
         indexes = features[:,DPF_index]>1
         features[indexes,DPF_index] = 0.0
         #Filter features to be usedfor training        
-        columnMask = np.full(features.shape[1], True)
+        columnMask = np.full(features.shape[1], False)
         oldMVA_discriminators = ["leg_2_byIsolationMVArun2v1DBnewDMwLTraw2017v2",
                                  "leg_2_DPFTau_2016_v1tauVSall",                              
                                  "leg_2_deepTau2017v1tauVSall",
