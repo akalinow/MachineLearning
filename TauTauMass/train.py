@@ -27,8 +27,8 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
     y = tf.get_default_graph().get_operation_by_name("model/output/Identity").outputs[0]
  
     yTrue = tf.get_default_graph().get_operation_by_name("input/y-input").outputs[0]
-    keep_prob = tf.get_default_graph().get_operation_by_name("model/dropout/Placeholder").outputs[0]
-    dropout = tf.get_default_graph().get_operation_by_name("model/dropout/dropout/Identity").outputs[0]
+    dropout_prob = tf.get_default_graph().get_operation_by_name("model/dropout_prob").outputs[0]
+    trainingMode = tf.get_default_graph().get_operation_by_name("model/trainingMode").outputs[0]
 
     train_step = tf.get_default_graph().get_operation_by_name("model/train/Adam")
 
@@ -53,13 +53,11 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
             iBatch+=1
             iEpoch = (int)(iBatch/numberOfBatches)
 
-            sess.run([train_step, dropout], feed_dict={x: xs, yTrue: ys, keep_prob: FLAGS.dropout})
+            sess.run([train_step], feed_dict={x: xs, yTrue: ys, dropout_prob: FLAGS.dropout, trainingMode: True})
 
             #Evaluate training performance
             if(iEpoch%10==0 and iBatch%numberOfBatches==0):
-                result = sess.run([pull_variance, mergedSummary, loss, dropout], feed_dict={x: xs, yTrue: ys, keep_prob: 0.5})
-
-                print("dropout:",result[3])
+                result = sess.run([pull_variance, mergedSummary, loss], feed_dict={x: xs, yTrue: ys,  dropout_prob: 0.0, trainingMode: False})
                             
                 iStep = iEpoch + iFold*FLAGS.max_epoch
                 variance = result[0]
@@ -77,7 +75,7 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
     try:
         xs, ys = makeFeedDict(sess, aValidationIterator)
         result = sess.run([pull_mean, pull_variance,  mergedSummary],
-                          feed_dict={x: xs, yTrue: ys, keep_prob: 1.0})
+                          feed_dict={x: xs, yTrue: ys,  dropout_prob: 0.0, trainingMode: False})
         mean = result[0]
         variance = result[1]
         validationSummary = result[2]
@@ -89,7 +87,7 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
               "pull mean:", mean,
               "pull RMS:", np.sqrt(variance))
         
-        result = sess.run([y, yTrue], feed_dict={x: xs, yTrue: ys, keep_prob: 1.0})
+        result = sess.run([y, yTrue], feed_dict={x: xs, yTrue: ys,  dropout_prob: 0.0, trainingMode: False})
         modelResult = result[0]
         labels = result[1]            
         #plotDiscriminant(modelResult, labels, "Validation")
@@ -125,8 +123,9 @@ def train():
     with tf.name_scope('model'): 
         myModel = Model(x, yTrue, nNeurons, nOutputNeurons, FLAGS.learning_rate, FLAGS.lambda_lagrange)
 
-    init = tf.global_variables_initializer()
-    sess.run(init)
+    init_global = tf.global_variables_initializer()
+    init_local = tf.local_variables_initializer()
+    sess.run([init_global, init_local])
 
     # Merge all the summaries and write them out to
     with tf.name_scope('monitor'): 
@@ -138,8 +137,6 @@ def train():
     for op in ops:
         print(op.name)    
     ###############################################
-    sess.run(init)
-
     iFold = 0
     runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWriter)
 
@@ -180,8 +177,8 @@ if __name__ == '__main__':
   parser.add_argument('--lambda_lagrange', type=float, default=0.1,
                       help='Largange multipler for L2 loss')
 
-  parser.add_argument('--dropout', type=float, default=1.0,
-                      help='Keep probability for training dropout.')
+  parser.add_argument('--dropout', type=float, default=0.2,
+                      help='Drop probability for training dropout.')
 
   parser.add_argument('--train_data_file', type=str,
       default=os.path.join(os.getenv('PWD', './'),

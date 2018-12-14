@@ -42,8 +42,7 @@ class Model:
 
     def defineOptimizationStrategy(self):              
         with tf.name_scope('train'):
-            #samplesWeights = tf.to_float(self.yTrue>0.5) + 100
-            samplesWeights = 1.0
+            samplesWeights = 9*self.yTrue + 1
             sigmoid_cross_entropy = tf.losses.sigmoid_cross_entropy(multi_class_labels=self.yTrue, logits=self.myLayers[-1], weights=samplesWeights)
             l2_regularizer =tf.contrib.layers.l2_regularizer(self.lambdaLagrange)
             modelParameters   = tf.trainable_variables()

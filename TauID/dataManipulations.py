@@ -3,6 +3,7 @@ import pandas as pd
 import tensorflow as tf
 from sklearn.model_selection import KFold
 from sklearn import preprocessing
+from collections import OrderedDict
 
 ##############################################################################
 ##############################################################################
@@ -12,6 +13,7 @@ class dataManipulations:
     def getNumpyMatricesFromRawData(self):
 
         legs, jets, global_params, properties = pd.read_pickle(self.fileName)
+        properties = OrderedDict(sorted(properties.items(), key=lambda t: t[0]))
 
         print("no of legs: ", len(legs))
         print("no of jets: ", len(jets))
@@ -32,7 +34,7 @@ class dataManipulations:
         indexes = features[:,DPF_index]>1
         features[indexes,DPF_index] = 0.0
         #Filter features to be usedfor training        
-        columnMask = np.full(features.shape[1], False)
+        columnMask = np.full(features.shape[1], True)
         oldMVA_discriminators = ["leg_2_byIsolationMVArun2v1DBnewDMwLTraw2017v2",
                                  "leg_2_DPFTau_2016_v1tauVSall",                              
                                  "leg_2_deepTau2017v1tauVSall",

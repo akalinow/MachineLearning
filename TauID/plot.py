@@ -39,14 +39,14 @@ def makePlots(sess, myDataManipulations):
     #featuresCopy[:,featuresNames.index("leg_2_deepTau2017v1tauVSjet")] = 0
     #featuresCopy[:,featuresNames.index("leg_2_DPFTau_2016_v1tauVSall")] = 0
 
-    result = sess.run([y, yTrue, accuracy], feed_dict={x: featuresCopy, yTrue: labels, dropout_prob: 0.0, trainingMode: False})
+    result = sess.run([y, yTrue, accuracy, x], feed_dict={x: featuresCopy, yTrue: labels, dropout_prob: 0.0, trainingMode: False})
     modelResult = result[0]
     modelResult = np.reshape(modelResult,(1,-1))[0]
 
     modelResults = {"training": modelResult,
-                    "DPFv1":features[:,featuresNames.index("leg_2_DPFTau_2016_v1tauVSall")],
-                    "deepTau":features[:,featuresNames.index("leg_2_deepTau2017v1tauVSall")],
-                    "MVA2017v2":features[:,featuresNames.index("leg_2_byIsolationMVArun2v1DBnewDMwLTraw2017v2")],
+                    #"DPFv1":features[:,featuresNames.index("leg_2_DPFTau_2016_v1tauVSall")],
+                    #"deepTau":features[:,featuresNames.index("leg_2_deepTau2017v1tauVSall")],
+                    #"MVA2017v2":features[:,featuresNames.index("leg_2_byIsolationMVArun2v1DBnewDMwLTraw2017v2")],
     }
 
     print("Test sample accuracy:",result[2])
@@ -86,7 +86,7 @@ def makePlots(sess, myDataManipulations):
         print('ROC AUC score for {} model: '.format(model), 1.0 - roc_auc_score(labels, aResult))
         fpr, tpr, thr = roc_curve(labels, aResult, pos_label=1)
         plt.semilogy(tpr, fpr, label=model)
-        plt.grid(True)
+        plt.grid(True, which="both",ls="-")
         plt.xlim((0.2, 1.0))
         plt.ylim((2E-4, 0.2))
         plt.ylabel('False positive rate')
