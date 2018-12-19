@@ -3,6 +3,7 @@ import pandas as pd
 import tensorflow as tf
 from sklearn.model_selection import KFold
 from sklearn import preprocessing
+from collections import OrderedDict
 
 ##############################################################################
 ##############################################################################
@@ -12,6 +13,7 @@ class dataManipulations:
     def getNumpyMatricesFromRawData(self):
 
         legs, jets, global_params, properties = pd.read_pickle(self.fileName)
+        properties = OrderedDict(sorted(properties.items(), key=lambda t: t[0]))
 
         print("no of legs: ", len(legs))
         print("no of jets: ", len(jets))
@@ -62,9 +64,8 @@ class dataManipulations:
 
         #leg2GenEnergy = leg2GenP4[:,0]
         #leg2GenEnergy = np.reshape(leg2GenEnergy, (-1,1))
-        features = np.hstack((genMass, fastMTT, leg1P4, leg2P4, leg2Properties, met))
-        #features = np.hstack((genMass, fastMTT, fastMTT, leg1P4, leg2P4, leg1Pt, leg2Pt, leg2Properties))
-
+        features = np.hstack((genMass, fastMTT, leg1P4, leg2P4, leg1Pt, leg2Pt, leg2Properties))
+               
         #Select events with MET>10
         index = met[:,0]>10 
         features = features[index]
@@ -80,12 +81,13 @@ class dataManipulations:
         
         index = features[:,1]>2 
         #features = features[index]
-        
+
         np.random.shuffle(features)
 
         #Quantize the output variable into self.nLabelBins
-        #or leave it as a floating point number
+        #or leave it as a floating point number        
         labels = features[:,0]
+        '''
         if self.nLabelBins>1:
             est = preprocessing.KBinsDiscretizer(n_bins=self.nLabelBins, encode='ordinal', strategy='uniform')
             tmp = np.reshape(features[:,0], (-1, 1))
@@ -93,6 +95,7 @@ class dataManipulations:
             labels = est.transform(tmp) + 1#Avoid bin number 0
         else:                
             labels = features[:,0]
+        '''
 
         #Apply all transformations to fastMTT column, as we want to plot it,
         #but remove the fastMTT column from model features
@@ -125,7 +128,6 @@ class dataManipulations:
         self.trainDataset = self.trainDataset.repeat(self.nEpochs)
 
         aDataset = tf.data.Dataset.from_tensor_slices((self.features_placeholder, self.labels_placeholder))
-	#aDataset = aDataset.cache()
         self.validationDataset = aDataset.batch(10000)
 	
 
@@ -146,7 +148,9 @@ class dataManipulations:
         trainIndexes = self.indexList[aFold][1][1]
         validationIndexes = self.indexList[aFold][1][0]
 
-        self.numberOfBatches = np.ceil(len(trainIndexes)/self.batchSize)
+        if self.batchSize>len(trainIndexes):
+            self.batchSize = len(trainIndexes)
+        self.numberOfBatches = np.ceil(len(trainIndexes)/(float)(self.batchSize))
         self.numberOfBatches = (int)(self.numberOfBatches)
 
         foldFeatures = self.features[trainIndexes]

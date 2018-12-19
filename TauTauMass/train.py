@@ -57,16 +57,20 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
 
             #Evaluate training performance
             if(iEpoch%10==0 and iBatch%numberOfBatches==0):
-                result = sess.run([pull_variance, mergedSummary, loss], feed_dict={x: xs, yTrue: ys,  dropout_prob: 0.0, trainingMode: False})
+                result = sess.run([pull_variance, mergedSummary, loss, lossL2], feed_dict={x: xs, yTrue: ys,  dropout_prob: 0.0, trainingMode: False})
                             
                 iStep = iEpoch + iFold*FLAGS.max_epoch
                 variance = result[0]
                 trainSummary = result[1]
                 modelLoss = result[2]
+                l2Loss = result[3]
                 myTrainWriter.add_summary(trainSummary, iStep)
                 print("Epoch number:",iEpoch,
+                      "batch number:",iBatch,
                       "pull RMS:", np.sqrt(variance),
-                      "total loss:",modelLoss)
+                      "L2 loss:",l2Loss,
+                      "total loss:",modelLoss
+                )
                                               
         except tf.errors.OutOfRangeError:
             break
@@ -74,7 +78,7 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
     #Evaluate performance on validation data
     try:
         xs, ys = makeFeedDict(sess, aValidationIterator)
-        result = sess.run([pull_mean, pull_variance,  mergedSummary],
+        result = sess.run([pull_mean, pull_variance,  mergedSummary, loss],
                           feed_dict={x: xs, yTrue: ys,  dropout_prob: 0.0, trainingMode: False})
         mean = result[0]
         variance = result[1]
@@ -85,11 +89,16 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
         print("Validation. Fold:",iFold,
               "Epoch:",iEpoch,
               "pull mean:", mean,
-              "pull RMS:", np.sqrt(variance))
+              "pull RMS:", np.sqrt(variance),
+              "loss:",result[3]
+        )
         
         result = sess.run([y, yTrue], feed_dict={x: xs, yTrue: ys,  dropout_prob: 0.0, trainingMode: False})
         modelResult = result[0]
-        labels = result[1]            
+        labels = result[1]
+
+        print("modelResult",modelResult[0:3])
+        print("labels",labels[0:3])
         #plotDiscriminant(modelResult, labels, "Validation")
     except tf.errors.OutOfRangeError:
         print("OutOfRangeError")
@@ -107,12 +116,12 @@ def train():
 
     nFolds = 2 #data split into equal training and validation parts
     nEpochs = FLAGS.max_epoch
-    batchSize = 1
+    batchSize = 258
     fileName = FLAGS.train_data_file
-    nLabelBins = 10
+    nLabelBins = 1
     myDataManipulations = dataManipulations(fileName, nFolds, nEpochs, batchSize, nLabelBins,  smearMET=False)        
     numberOfFeatures = myDataManipulations.numberOfFeatures
-    nNeurons = [numberOfFeatures, 16, 16, 16, 16]
+    nNeurons = [numberOfFeatures, 16, 16]
     nOutputNeurons = nLabelBins
 
     # Input placeholders
@@ -132,12 +141,15 @@ def train():
         merged = tf.summary.merge_all()
     myTrainWriter = tf.summary.FileWriter(FLAGS.log_dir + '/train', sess.graph)
     myValidationWriter = tf.summary.FileWriter(FLAGS.log_dir + '/validation', sess.graph)
-    ###############################################    
+    ###############################################
+    '''
     ops = tf.get_default_graph().get_operations()
     for op in ops:
         print(op.name)    
+    '''    
     ###############################################
     iFold = 0
+
     runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWriter)
 
     myTrainWriter.close()
@@ -148,7 +160,8 @@ def train():
     tf.saved_model.simple_save(sess, FLAGS.model_dir,
                                inputs={"x": x, "yTrue": yTrue},
                                outputs={"y": y})
-    print("Model saved in file: %s" % FLAGS.model_dir)
+    print("Model saved in file: %s" % FLAGS.model_dir)    
+       
     return
 ##############################################################################
 ##############################################################################

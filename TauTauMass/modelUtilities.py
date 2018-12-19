@@ -6,7 +6,6 @@ import numpy as np
 ##############################################################################
 def weight_variable(shape):
     """Create a weight variable with appropriate initialization."""
-    #initial = tf.truncated_normal(shape, stddev=0.1)
     numberOfInputs = shape[0]
     initial = tf.random_uniform(shape)*np.sqrt(2.0/numberOfInputs)
     return tf.Variable(initial)
@@ -15,7 +14,7 @@ def weight_variable(shape):
 ##############################################################################
 def bias_variable(shape):
     """Create a bias variable with appropriate initialization."""
-    initial = tf.constant(0.01, shape=shape)
+    initial = tf.constant(0.01, shape=shape)    
     return tf.Variable(initial)
 ##############################################################################
 ##############################################################################
@@ -53,7 +52,7 @@ def nn_layer(input_tensor, input_dim, output_dim, layer_name, trainingMode, act=
         variable_summaries(biases)
       with tf.name_scope('Wx_plus_b'):
         preactivate = tf.matmul(input_tensor, weights) + biases
-        preactivate = tf.layers.batch_normalization(preactivate, training=trainingMode)  
+        #preactivate = tf.layers.batch_normalization(preactivate, training=trainingMode)  
         tf.summary.histogram('pre_activations', preactivate)
 
       activations = act(preactivate, name='activation')

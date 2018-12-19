@@ -25,15 +25,15 @@ def makePlots(sess, myDataManipulations):
     x = tf.get_default_graph().get_operation_by_name("input/x-input").outputs[0]
     y = tf.get_default_graph().get_operation_by_name("model/output/Identity").outputs[0]    
     yTrue = tf.get_default_graph().get_operation_by_name("input/y-input").outputs[0]
-    keep_prob = tf.get_default_graph().get_operation_by_name("model/dropout/Placeholder").outputs[0]
-    
-    iFold = 0 
-    aTrainIterator, aValidationIterator = myDataManipulations.getCVFold(sess, iFold)
-    numberOfBatches = myDataManipulations.numberOfBatches
-   
-    xs, ys = makeFeedDict(sess, aTrainIterator)
-    result = sess.run([x, y, yTrue], feed_dict={x: xs, yTrue: ys, keep_prob: 1.0})
-       
+
+    dropout_prob = tf.get_default_graph().get_operation_by_name("model/dropout_prob").outputs[0]
+    trainingMode = tf.get_default_graph().get_operation_by_name("model/trainingMode").outputs[0]
+
+    features = myDataManipulations.features
+    labels = myDataManipulations.labels
+    result = sess.run([x, y, yTrue], feed_dict={x: features, yTrue: labels, dropout_prob: 0.0, trainingMode: False})
+
+    '''
     prob = tf.nn.softmax(logits=y)
     onehot_labels = tf.one_hot(tf.to_int32(yTrue), depth=10, axis=-1)
     result = sess.run([x, y, yTrue, prob, onehot_labels], feed_dict={x: xs, yTrue: ys, keep_prob: 1.0})
@@ -46,7 +46,7 @@ def makePlots(sess, myDataManipulations):
     plt.plot(onehot[0],"r")
     plt.show()
     return
-    
+    '''
     
     modelInput = result[0]
     modelResult = result[1]
@@ -74,7 +74,7 @@ def makePlots(sess, myDataManipulations):
     labels_S_B = np.concatenate((labels_S, labels_B))
     fpr_training, tpr_training, thresholds = metrics.roc_curve(labels_S_B, scores, pos_label=1)    
 
-    ####
+    ####    
     modelResult = modelResult_H125
     labels = labels_H125
     ####
@@ -104,8 +104,8 @@ def makePlots(sess, myDataManipulations):
     fpr_fastMTT, tpr_fastMTT, thresholds = metrics.roc_curve(labels_S_B, scores, pos_label=1)    
 
     ####
-    model_fastMTT = modelResult_Z90
-    labels = labels_Z90
+    model_fastMTT = modelResult_H125
+    labels = labels_H125
     ####
     
     pull = ( model_fastMTT - labels)/labels

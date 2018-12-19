@@ -44,13 +44,12 @@ class Model:
         with tf.name_scope('train'):
             samplesWeights = 1.0
 
-            if self.nOutputNeurons<2:
-                mean_squared_error = tf.losses.mean_squared_error(labels=self.yTrue, predictions=self.myLayers[-1])
-            else:    
+            if self.nOutputNeurons>1:
                 onehot_labels = tf.one_hot(tf.to_int32(self.yTrue), depth=self.nOutputNeurons, axis=-1)
                 tf.losses.softmax_cross_entropy(onehot_labels=onehot_labels, logits=self.myLayers[-1], weights=samplesWeights)
-            
-            sigmoid_cross_entropy = tf.losses.sigmoid_cross_entropy(multi_class_labels=self.yTrue, logits=self.myLayers[-1], weights=samplesWeights)
+            else:
+                mean_squared_error = tf.losses.mean_squared_error(labels=self.yTrue, predictions=self.myLayers[-1], weights=samplesWeights)
+
             l2_regularizer =tf.contrib.layers.l2_regularizer(self.lambdaLagrange)
             modelParameters   = tf.trainable_variables()
             tf.contrib.layers.apply_regularization(l2_regularizer, modelParameters)
@@ -73,6 +72,7 @@ class Model:
             
         tf.summary.scalar('loss', lossFunction)
         tf.summary.scalar('pull_rms', tf.sqrt(pull_variance[0]))
+        tf.summary.scalar('pull_mean', pull_mean[0])
         
         
 
@@ -94,7 +94,7 @@ class Model:
         self.dropout_prob = tf.placeholder(tf.float32, name="dropout_prob")
 
         self.addFCLayers()
-        self.addDropoutLayer()
+        #self.addDropoutLayer()
         self.addOutputLayer()
         self.defineOptimizationStrategy()
 ##############################################################################
