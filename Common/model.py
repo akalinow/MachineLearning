@@ -23,6 +23,8 @@ class Model:
                                          activation = tf.nn.elu)
             self.myLayers.append(aLayer)
 
+##############################################################################
+##############################################################################
     def addDropoutLayer(self):
 
         lastLayer = self.myLayers[-1]
@@ -31,6 +33,8 @@ class Model:
             aLayer = tf.layers.dropout(inputs = lastLayer, rate = self.dropout_prob, training=self.trainingMode)
             self.myLayers.append(aLayer)
 
+            ##############################################################################
+##############################################################################
     def addOutputLayer(self):
 
         lastLayer = self.myLayers[-1]
@@ -40,6 +44,8 @@ class Model:
                                  activation = tf.identity)
         self.myLayers.append(aLayer)
 
+##############################################################################
+##############################################################################
     def defineOptimizationStrategy(self):              
         with tf.name_scope('train'):
             samplesWeights = 1.0
@@ -73,19 +79,18 @@ class Model:
         tf.summary.scalar('loss', lossFunction)
         tf.summary.scalar('pull_rms', tf.sqrt(pull_variance[0]))
         tf.summary.scalar('pull_mean', pull_mean[0])
-        
-        
+                
+##############################################################################
+##############################################################################
+    def __init__(self, inputIterator, nNeurons, nOutputNeurons, learning_rate, lambdaLagrange):
 
-    def __init__(self, x, yTrue, nNeurons, nOutputNeurons, learning_rate, lambdaLagrange):
-
+        self.myLayers = [inputIterator[1]]
+        self.yTrue = inputIterator[0]
+                
         self.nNeurons = nNeurons
         self.nOutputNeurons = nOutputNeurons
         
         self.nLayers = len(self.nNeurons)
-
-        self.myLayers = [x]
-
-        self.yTrue = yTrue
 
         self.learning_rate = learning_rate
         self.lambdaLagrange = lambdaLagrange
@@ -94,9 +99,10 @@ class Model:
         self.dropout_prob = tf.placeholder(tf.float32, name="dropout_prob")
 
         self.addFCLayers()
-        #self.addDropoutLayer()
+        self.addDropoutLayer()
         self.addOutputLayer()
         self.defineOptimizationStrategy()
+        
 ##############################################################################
 ##############################################################################
 ##############################################################################

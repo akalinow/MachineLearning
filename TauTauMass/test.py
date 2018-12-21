@@ -22,17 +22,29 @@ deviceName = None
  
 ##############################################################################
 ##############################################################################
-##############################################################################
-def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWriter):
-    #Fetch operations
-    x = tf.get_default_graph().get_operation_by_name("input/x-input").outputs[0]
-    y = tf.get_default_graph().get_operation_by_name("model/output/Identity").outputs[0]
- 
-    yTrue = tf.get_default_graph().get_operation_by_name("input/y-input").outputs[0]
+def runTraining(sess):
+
+    train_step = tf.get_default_graph().get_operation_by_name("model/train/Adam")
     dropout_prob = tf.get_default_graph().get_operation_by_name("model/dropout_prob").outputs[0]
     trainingMode = tf.get_default_graph().get_operation_by_name("model/trainingMode").outputs[0]
 
-    train_step = tf.get_default_graph().get_operation_by_name("model/train/Adam")
+    while True:
+        try:
+            sess.run([train_step], feed_dict={dropout_prob: FLAGS.dropout, trainingMode: True})
+                                                         
+        except tf.errors.OutOfRangeError:
+            break  
+##############################################################################
+##############################################################################
+def runValidation(sess, iEpoch, myWriter):
+
+    #Fetch operations
+    dataIter = tf.get_default_graph().get_operation_by_name("IteratorGetNext").outputs
+    x = tf.get_default_graph().get_operation_by_name("x-input").outputs[0]
+    y = tf.get_default_graph().get_operation_by_name("model/output/Identity").outputs[0]
+ 
+    dropout_prob = tf.get_default_graph().get_operation_by_name("model/dropout_prob").outputs[0]
+    trainingMode = tf.get_default_graph().get_operation_by_name("model/trainingMode").outputs[0]
 
     pull_mean = tf.get_default_graph().get_operation_by_name("model/performance/pull_moments/mean").outputs[0]
     pull_variance = tf.get_default_graph().get_operation_by_name("model/performance/pull_moments/variance").outputs[0]
@@ -43,68 +55,25 @@ def runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWrite
 
     mergedSummary = tf.get_default_graph().get_operation_by_name("monitor/Merge/MergeSummary").outputs[0]
 
-    aTrainIterator, aValidationIterator = myDataManipulations.getCVFold(sess, iFold)
-    numberOfBatches = myDataManipulations.numberOfBatches
-
-    #Train
-    iBatch = -1
-    iEpoch = 0
     while True:
         try:
-            iBatch+=1
-            iEpoch = (int)(iBatch/numberOfBatches)
-
-            #Run training
-            sess.run([train_step], feed_dict={x: xs, yTrue: ys, dropout_prob: FLAGS.dropout, trainingMode: True})
-
-            #Evaluate training performance
-            if(iEpoch%10==0 and iBatch%numberOfBatches==0):
-                result = sess.run([pull_variance, mergedSummary, loss, lossL2], feed_dict={x: xs, yTrue: ys,  dropout_prob: 0.0, trainingMode: False})
-                            
-                iStep = iEpoch + iFold*FLAGS.max_epoch
-                variance = result[0]
-                trainSummary = result[1]
-                modelLoss = result[2]
-                l2Loss = result[3]
-                myTrainWriter.add_summary(trainSummary, iStep)
-                print("Epoch number:",iEpoch,
-                      "batch number:",iBatch,
-                      "pull RMS:", np.sqrt(variance),
-                      "L2 loss:",l2Loss,
-                      "total loss:",modelLoss
-                )
+            result = sess.run([pull_variance, pull_mean, mergedSummary, loss, lossL2, dataIter], feed_dict={dropout_prob: 0.0, trainingMode: False})
+            variance = result[0]
+            mean = result[1]
+            trainSummary = result[2]
+            modelLoss = result[3]
+            l2Loss = result[4]
+            print("pull mean:", np.sqrt(mean),
+                  "pull RMS:", np.sqrt(variance),
+                  "L2 loss:",l2Loss,
+                  "total loss:",modelLoss
+            )
+            #print("yTrue:",result[4][0])
+            #print("x:",result[4][1])
+            myWriter.add_summary(trainSummary, iEpoch)
                                               
         except tf.errors.OutOfRangeError:
-            break
-    #########################################
-    #Evaluate performance on validation data
-    try:
-        xs, ys = makeFeedDict(sess, aValidationIterator)
-        result = sess.run([pull_mean, pull_variance,  mergedSummary, loss],
-                          feed_dict={x: xs, yTrue: ys,  dropout_prob: 0.0, trainingMode: False})
-        mean = result[0]
-        variance = result[1]
-        validationSummary = result[2]
-        iStep = (iFold+1)*FLAGS.max_epoch - 1
-        myValidationWriter.add_summary(validationSummary, iStep)
-        
-        print("Validation. Fold:",iFold,
-              "Epoch:",iEpoch,
-              "pull mean:", mean,
-              "pull RMS:", np.sqrt(variance),
-              "loss:",result[3]
-        )
-        
-        result = sess.run([y, yTrue], feed_dict={x: xs, yTrue: ys,  dropout_prob: 0.0, trainingMode: False})
-        modelResult = result[0]
-        labels = result[1]
-
-        print("modelResult",modelResult[0:3])
-        print("labels",labels[0:3])
-        #plotDiscriminant(modelResult, labels, "Validation")
-    except tf.errors.OutOfRangeError:
-        print("OutOfRangeError")
-##############################################################################
+            break  
 ##############################################################################
 ##############################################################################
 def train():
@@ -118,16 +87,17 @@ def train():
 
     nFolds = 2 #data split into equal training and validation parts
     nEpochs = FLAGS.max_epoch
-    batchSize = 258
+    batchSize = 128
     fileName = FLAGS.train_data_file
     nLabelBins = 1
-    myDataManipulations = dataManipulations(fileName, nFolds, nEpochs, batchSize, nLabelBins,  smearMET=False)        
+    myDataManipulations = dataManipulations(fileName, nFolds, nEpochs, batchSize, nLabelBins,  smearMET=False)
+    aDataIterator  = myDataManipulations.dataIterator.get_next()
     numberOfFeatures = myDataManipulations.numberOfFeatures
     nNeurons = [numberOfFeatures, 16, 16]
     nOutputNeurons = nLabelBins
 
     with tf.name_scope('model'): 
-        myModel = Model(x, yTrue, nNeurons, nOutputNeurons, FLAGS.learning_rate, FLAGS.lambda_lagrange)
+        myModel = Model(aDataIterator, nNeurons, nOutputNeurons, FLAGS.learning_rate, FLAGS.lambda_lagrange)
 
     init_global = tf.global_variables_initializer()
     init_local = tf.local_variables_initializer()
@@ -136,6 +106,7 @@ def train():
     # Merge all the summaries and write them out to
     with tf.name_scope('monitor'): 
         merged = tf.summary.merge_all()
+        
     myTrainWriter = tf.summary.FileWriter(FLAGS.log_dir + '/train', sess.graph)
     myValidationWriter = tf.summary.FileWriter(FLAGS.log_dir + '/validation', sess.graph)
     ###############################################
@@ -143,16 +114,26 @@ def train():
     ops = tf.get_default_graph().get_operations()
     for op in ops:
         print(op.name)    
-    '''    
+    '''  
     ###############################################
-    iFold = 0
+    for iEpoch in range(0,FLAGS.max_epoch):
+        print("Epoch:",iEpoch)
+        myDataManipulations.initializeDataIteratorForCVFold(sess, aFold=0, trainingMode=True)
+        runTraining(sess)
 
-    runCVFold(sess, iFold, myDataManipulations, myTrainWriter, myValidationWriter)
+        if iEpoch%10==0:
+            myDataManipulations.initializeDataIteratorForCVFold(sess, aFold=0, trainingMode=False)
+            runValidation(sess, iEpoch, myTrainWriter)
+
 
     myTrainWriter.close()
     myValidationWriter.close()
+    ###############################################
+    
     # Save the model to disk.
+    x = tf.get_default_graph().get_operation_by_name("x-input").outputs[0]
     y = tf.get_default_graph().get_operation_by_name("model/output/Identity").outputs[0]
+    yTrue = tf.get_default_graph().get_operation_by_name("y-input").outputs[0]
     
     tf.saved_model.simple_save(sess, FLAGS.model_dir,
                                inputs={"x": x, "yTrue": yTrue},
