@@ -110,7 +110,7 @@ class dataManipulations(InputWithDataset):
         #Apply all transformations to fastMTT column, as we want to plot it,
         #but remove the fastMTT column from model features
         fastMTT = features[:,1]
-        features = features[:,2:4]
+        features = features[:,2:5]
 
         print("Input data shape:",features.shape)
         print("Label bins:",self.nLabelBins)

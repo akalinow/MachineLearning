@@ -28,12 +28,15 @@ def runTraining(sess):
     dropout_prob = tf.get_default_graph().get_operation_by_name("model/dropout_prob").outputs[0]
     trainingMode = tf.get_default_graph().get_operation_by_name("model/trainingMode").outputs[0]
 
+    counter = 0
     while True:
         try:
+            counter+=1
             sess.run([train_step], feed_dict={dropout_prob: FLAGS.dropout, trainingMode: True})
                                                          
         except tf.errors.OutOfRangeError:
-            break  
+            break
+    print("Counter:",counter)       
 ##############################################################################
 ##############################################################################
 def runValidation(sess, iEpoch, myWriter):
@@ -45,9 +48,13 @@ def runValidation(sess, iEpoch, myWriter):
  
     dropout_prob = tf.get_default_graph().get_operation_by_name("model/dropout_prob").outputs[0]
     trainingMode = tf.get_default_graph().get_operation_by_name("model/trainingMode").outputs[0]
+    
+    pull_mean = tf.get_default_graph().get_operation_by_name("model/performance/mean/count").outputs[0]
+    pull_mean_update_op = tf.get_default_graph().get_operation_by_name("model/performance/mean/update_op").outputs[0]
 
-    pull_mean = tf.get_default_graph().get_operation_by_name("model/performance/pull_moments/mean").outputs[0]
-    pull_variance = tf.get_default_graph().get_operation_by_name("model/performance/pull_moments/variance").outputs[0]
+    pull_variance = tf.get_default_graph().get_operation_by_name("model/performance/root_mean_squared_error/count").outputs[0]
+    pull_variance_update_op = tf.get_default_graph().get_operation_by_name("model/performance/root_mean_squared_error/update_op").outputs[0]
+
     response = tf.get_default_graph().get_operation_by_name("model/performance/Reshape").outputs[0]
 
     loss = tf.get_default_graph().get_operation_by_name("model/train/total_loss").outputs[0]
@@ -55,25 +62,37 @@ def runValidation(sess, iEpoch, myWriter):
 
     mergedSummary = tf.get_default_graph().get_operation_by_name("monitor/Merge/MergeSummary").outputs[0]
 
+    init_local = tf.local_variables_initializer()
+    sess.run([init_local])
+
+    counter = 0
     while True:
         try:
+            counter+=1
+            sess.run([pull_mean_update_op, pull_variance_update_op], feed_dict={dropout_prob: 0.0, trainingMode: False})
             result = sess.run([pull_variance, pull_mean, mergedSummary, loss, lossL2, dataIter], feed_dict={dropout_prob: 0.0, trainingMode: False})
-            variance = result[0]
+            rms = result[0]
             mean = result[1]
             trainSummary = result[2]
             modelLoss = result[3]
             l2Loss = result[4]
-            print("pull mean:", np.sqrt(mean),
-                  "pull RMS:", np.sqrt(variance),
+            '''
+            print("pull mean:", mean,
+                  "pull RMS:", rms,
                   "L2 loss:",l2Loss,
                   "total loss:",modelLoss
             )
+            '''
             #print("yTrue:",result[4][0])
             #print("x:",result[4][1])
             myWriter.add_summary(trainSummary, iEpoch)
                                               
         except tf.errors.OutOfRangeError:
-            break  
+            break
+
+    print("Counter:",counter)    
+    result = sess.run([pull_variance, pull_mean])
+    print("pull mean:", result[0], "pull RMS:", result[1])
 ##############################################################################
 ##############################################################################
 def train():
@@ -87,9 +106,9 @@ def train():
 
     nFolds = 2 #data split into equal training and validation parts
     nEpochs = FLAGS.max_epoch
-    batchSize = 128
+    batchSize = 1
     fileName = FLAGS.train_data_file
-    nLabelBins = 1
+    nLabelBins = 512
     myDataManipulations = dataManipulations(fileName, nFolds, nEpochs, batchSize, nLabelBins,  smearMET=False)
     aDataIterator  = myDataManipulations.dataIterator.get_next()
     numberOfFeatures = myDataManipulations.numberOfFeatures
@@ -114,14 +133,21 @@ def train():
     ops = tf.get_default_graph().get_operations()
     for op in ops:
         print(op.name)    
-    '''  
+    
+    print("tf.GraphKeys.UPDATE_OPS:")
+        
+    ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+    for op in ops:
+        print(op.name)
+    '''
+    #exit(0)    
     ###############################################
     for iEpoch in range(0,FLAGS.max_epoch):
         print("Epoch:",iEpoch)
         myDataManipulations.initializeDataIteratorForCVFold(sess, aFold=0, trainingMode=True)
         runTraining(sess)
 
-        if iEpoch%10==0:
+        if iEpoch%1==0:
             myDataManipulations.initializeDataIteratorForCVFold(sess, aFold=0, trainingMode=False)
             runValidation(sess, iEpoch, myTrainWriter)
 

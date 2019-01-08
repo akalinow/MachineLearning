@@ -12,7 +12,7 @@ class InputWithDataset:
 
     def getNumpyMatricesFromRawData(self):
 
-       print("Define",__function__,"in daughter class.")
+       print("Define",__name__,"in daughter class.")
 
 ##############################################################################
 ##############################################################################       
@@ -27,17 +27,13 @@ class InputWithDataset:
     def makeDataset(self, trainingMode=True):
 
         aDataset = tf.data.Dataset.from_tensor_slices((self.labels_placeholder, self.features_placeholder))
-
-        if trainingMode: 
-            aDataset = aDataset.batch(self.batchSize)
+        aDataset = aDataset.batch(self.batchSize)
 
         return aDataset        
 
 ##############################################################################
 ##############################################################################
     def getDataIterator(self, aDataset):
-
-        print("aDataset.output_shapes:",aDataset.output_shapes)
 
         aIterator = tf.data.Iterator.from_structure(aDataset.output_types, aDataset.output_shapes)
         return aIterator
@@ -57,6 +53,9 @@ class InputWithDataset:
             trainIndexes = self.indexList[aFold][1][1]
             indexes = trainIndexes
 
+        print("trainingMode:",trainingMode,
+              "Number of examples:",len(indexes))    
+
         if self.batchSize>len(indexes):
             self.batchSize = len(indexes)
         self.numberOfBatches = np.ceil(len(indexes)/(float)(self.batchSize))
@@ -67,7 +66,7 @@ class InputWithDataset:
 
         aDataset = self.makeDataset(trainingMode)
         init_op = self.dataIterator.make_initializer(aDataset)
-        feed_dict={self.features_placeholder: foldFeatures, self.labels_placeholder: foldLabels}
+        feed_dict={self.labels_placeholder: foldLabels, self.features_placeholder: foldFeatures}
         sess.run(init_op, feed_dict=feed_dict)
 
 ##############################################################################

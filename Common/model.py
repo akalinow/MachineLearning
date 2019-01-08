@@ -73,12 +73,16 @@ class Model:
                 response = tf.to_float(response)
                 
             response = tf.reshape(response, (-1,1))
-            pull = (response - self.yTrue)/self.yTrue
-            pull_mean, pull_variance = tf.nn.moments(pull, axes=[0],name="pull_moments")
-            
+            labels =  self.yTrue
+            pull = (response - labels)/labels
+
+            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+            pull_mean, _ = tf.metrics.mean(values=pull, updates_collections=update_ops)
+            pull_rms, _ = tf.metrics.root_mean_squared_error(labels=self.yTrue/self.yTrue, predictions=pull, updates_collections=update_ops)
+                        
         tf.summary.scalar('loss', lossFunction)
-        tf.summary.scalar('pull_rms', tf.sqrt(pull_variance[0]))
-        tf.summary.scalar('pull_mean', pull_mean[0])
+        #tf.summary.scalar('pull_rms', pull_rms)
+        #tf.summary.scalar('pull_mean', pull_mean)
                 
 ##############################################################################
 ##############################################################################
