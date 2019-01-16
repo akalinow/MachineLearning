@@ -24,20 +24,19 @@ class InputWithDataset:
 
 ##############################################################################
 ##############################################################################
-    def makeDataset(self, trainingMode=True):
+    def makeDataset(self):
 
         aDataset = tf.data.Dataset.from_tensor_slices((self.labels_placeholder, self.features_placeholder))
         aDataset = aDataset.batch(self.batchSize)
-
-        return aDataset        
+        self.aDataset = aDataset.prefetch(self.batchSize)
 
 ##############################################################################
 ##############################################################################
-    def getDataIterator(self, aDataset):
+    def makeDataIterator(self):
 
-        aIterator = tf.data.Iterator.from_structure(aDataset.output_types, aDataset.output_shapes)
-        return aIterator
-
+        self.dataIterator = tf.data.Iterator.from_structure(self.aDataset.output_types, self.aDataset.output_shapes)
+        self.iterator_init_op = self.dataIterator.make_initializer(self.aDataset)
+        
 ##############################################################################
 ##############################################################################
     def initializeDataIteratorForCVFold(self, sess, aFold, trainingMode=True):
@@ -46,48 +45,45 @@ class InputWithDataset:
             print("Fold too big: ",aFold," number of folds is ",self.nFolds)
             return None
 
-        if not trainingMode:
+        if trainingMode:
             validationIndexes = self.indexList[aFold][1][0]
             indexes = validationIndexes
         else:
             trainIndexes = self.indexList[aFold][1][1]
             indexes = trainIndexes
 
-        print("trainingMode:",trainingMode,
-              "Number of examples:",len(indexes))    
-
         if self.batchSize>len(indexes):
             self.batchSize = len(indexes)
-        self.numberOfBatches = np.ceil(len(indexes)/(float)(self.batchSize))
-        self.numberOfBatches = (int)(self.numberOfBatches)
 
         foldFeatures = self.features[indexes]
         foldLabels = self.labels[indexes]
 
-        aDataset = self.makeDataset(trainingMode)
-        init_op = self.dataIterator.make_initializer(aDataset)
         feed_dict={self.labels_placeholder: foldLabels, self.features_placeholder: foldFeatures}
-        sess.run(init_op, feed_dict=feed_dict)
+        sess.run(self.iterator_init_op, feed_dict=feed_dict)
 
 ##############################################################################
 ##############################################################################    
-    def __init__(self, fileName, nFolds, nEpochs, batchSize, nLabelBins):
+    def __init__(self, fileName, nFolds, batchSize, nLabelBins):
 
         self.fileName = fileName
         self.batchSize = batchSize
         self.nFolds = nFolds
-        self.nEpochs = nEpochs
         self.nLabelBins = nLabelBins
         self.numberOfFeatures = 1
 
         self.getNumpyMatricesFromRawData()
-        self.makeCVFoldGenerator()
 
-        self.features_placeholder = tf.placeholder(tf.float32, name='x-input', shape=(None, self.numberOfFeatures))
-        self.labels_placeholder = tf.placeholder(tf.float32, name='y-input', shape=(None, self.nLabelBins))
+        with tf.name_scope('data'):
+            self.features_placeholder = tf.placeholder(tf.float32, name='x-input', shape=(None, self.numberOfFeatures))
+            self.labels_placeholder = tf.placeholder(tf.float32, name='y-input', shape=(None, self.nLabelBins))
 
-        aDataset = self.makeDataset()
-        self.dataIterator = self.getDataIterator(aDataset)
+            self.makeDataset()
+            self.makeDataIterator()
+            self.makeCVFoldGenerator()
+        
+        aFold = 0
+        print("Number of examples in trainig fold", aFold, len(self.indexList[aFold][1][0]))
+        print("Number of examples in validation fold", aFold, len(self.indexList[aFold][1][1]))
     
 ##############################################################################
 ##############################################################################

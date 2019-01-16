@@ -72,17 +72,29 @@ class Model:
                 response = tf.math.argmax(response, axis=(1))
                 response = tf.to_float(response)
                 
-            response = tf.reshape(response, (-1,1))
+            response = tf.reshape(response, (-1,1), name="response")
             labels =  self.yTrue
             pull = (response - labels)/labels
 
-            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-            pull_mean, _ = tf.metrics.mean(values=pull, updates_collections=update_ops)
-            pull_rms, _ = tf.metrics.root_mean_squared_error(labels=self.yTrue/self.yTrue, predictions=pull, updates_collections=update_ops)
-                        
-        tf.summary.scalar('loss', lossFunction)
-        #tf.summary.scalar('pull_rms', pull_rms)
-        #tf.summary.scalar('pull_mean', pull_mean)
+            my_update_ops = tf.get_collection("MY_UPDATE_OPS")
+            my_running_vals = tf.get_collection("MY_MOVING_VALS")
+
+            entropyLoss = tf.get_default_graph().get_operation_by_name("model/train/total_loss").outputs[0]
+            l2Loss = tf.get_default_graph().get_operation_by_name("model/train/get_regularization_penalty").outputs[0]
+            
+            l2Loss_mean, _ = tf.metrics.mean(values=l2Loss, name="mean_l2Loss", updates_collections=["MY_UPDATE_OPS"])
+            entropyLoss_mean, _ = tf.metrics.mean(values=entropyLoss, name="mean_entropyLoss", updates_collections=["MY_UPDATE_OPS"])            
+            pull_mean, _ = tf.metrics.mean(values=pull, name="mean_pull", updates_collections=["MY_UPDATE_OPS"])
+            pull_rms, _ = tf.metrics.root_mean_squared_error(labels=self.yTrue/self.yTrue - 1, predictions=pull, name="pull_rms", updates_collections=["MY_UPDATE_OPS"])
+
+            tf.add_to_collection("MY_RUNNING_VALS",l2Loss_mean)
+            tf.add_to_collection("MY_RUNNING_VALS",entropyLoss_mean)
+            tf.add_to_collection("MY_RUNNING_VALS",pull_mean)
+            tf.add_to_collection("MY_RUNNING_VALS",pull_rms)
+            
+            tf.summary.scalar('entropyLoss_mean', entropyLoss_mean)
+            tf.summary.scalar('pull_rms', pull_rms)
+            tf.summary.scalar('pull_mean', pull_mean)
                 
 ##############################################################################
 ##############################################################################
@@ -106,6 +118,10 @@ class Model:
         self.addDropoutLayer()
         self.addOutputLayer()
         self.defineOptimizationStrategy()
+
+        # Merge all the summaries
+        with tf.name_scope('monitor'): 
+            merged = tf.summary.merge_all()
         
 ##############################################################################
 ##############################################################################

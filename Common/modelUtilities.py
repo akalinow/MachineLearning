@@ -3,7 +3,71 @@ import numpy as np
 
 ##############################################################################
 ##############################################################################
+def listOperations():
+
+    print("All operations:")
+    ops = tf.get_default_graph().get_operations()
+    for op in ops:
+        print(op.name)    
+
+    print("Losses:")
+    ops = tf.get_collection(tf.GraphKeys.LOSSES)
+    for op in ops:
+        print(op.name)
 ##############################################################################
+##############################################################################
+def saveTheModel(sess, flags):
+
+    x = tf.get_default_graph().get_operation_by_name("data/x-input").outputs[0]
+    y = tf.get_default_graph().get_operation_by_name("model/output/Identity").outputs[0]
+    yTrue = tf.get_default_graph().get_operation_by_name("data/y-input").outputs[0]
+    
+    tf.saved_model.simple_save(sess, flags.model_dir,
+                               inputs={"x": x, "yTrue": yTrue},
+                               outputs={"y": y})
+    print("Model saved in file: %s" % flags.model_dir) 
+##############################################################################
+##############################################################################
+def runTraining(sess, iEpoch, myWriter, flags, trainingMode=True):
+    
+    train_step = tf.get_default_graph().get_operation_by_name("model/train/Adam")
+    dropout_prob = tf.get_default_graph().get_operation_by_name("model/dropout_prob").outputs[0]
+    trainingModeFlag = tf.get_default_graph().get_operation_by_name("model/trainingMode").outputs[0]
+    mergedSummary = tf.get_default_graph().get_operation_by_name("model/monitor/Merge/MergeSummary").outputs[0]
+
+    ops = tf.get_collection("MY_UPDATE_OPS")
+    if trainingMode:
+        ops.insert(0, train_step)
+    ops.append(mergedSummary)
+
+    result = []
+    while True:
+        try:
+            result = sess.run(ops, feed_dict={dropout_prob: flags.dropout, trainingModeFlag: trainingMode})
+        except tf.errors.OutOfRangeError:
+            break
+        
+    if iEpoch%10==0:
+        print("Epoch:",iEpoch)
+        if trainingMode:
+            print("Training:")
+        else:
+            print("Validation:")
+
+        trainSummary = result[-1]
+        myWriter.add_summary(trainSummary, iEpoch)  
+    
+        ops = tf.get_collection("MY_RUNNING_VALS")
+        result = sess.run(ops)
+
+        for index, aOp in enumerate(ops):
+            print(aOp.name, result[index])
+##############################################################################
+##############################################################################            
+
+
+
+
 def weight_variable(shape):
     """Create a weight variable with appropriate initialization."""
     numberOfInputs = shape[0]
@@ -11,12 +75,10 @@ def weight_variable(shape):
     return tf.Variable(initial)
 ##############################################################################
 ##############################################################################
-##############################################################################
 def bias_variable(shape):
     """Create a bias variable with appropriate initialization."""
     initial = tf.constant(0.01, shape=shape)    
     return tf.Variable(initial)
-##############################################################################
 ##############################################################################
 ##############################################################################
 def variable_summaries(var):
@@ -31,7 +93,6 @@ def variable_summaries(var):
       tf.summary.scalar('max', tf.reduce_max(var))
       tf.summary.scalar('min', tf.reduce_min(var))
       tf.summary.histogram('histogram', var)
-##############################################################################
 ##############################################################################
 ##############################################################################
 def nn_layer(input_tensor, input_dim, output_dim, layer_name, trainingMode, act=tf.nn.relu):
@@ -58,6 +119,5 @@ def nn_layer(input_tensor, input_dim, output_dim, layer_name, trainingMode, act=
       activations = act(preactivate, name='activation')
       tf.summary.histogram('activations', activations)
       return activations
-##############################################################################
 ##############################################################################
 ##############################################################################

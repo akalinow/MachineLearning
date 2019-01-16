@@ -12,11 +12,11 @@ from InputWithDataset import *
 ##############################################################################
 class dataManipulations(InputWithDataset):
 
-    def __init__(self, fileName, nFolds, nEpochs, batchSize, nLabelBins, smearMET=True):        
+    def __init__(self, fileName, nFolds, batchSize, nLabelBins, smearMET=True):        
         
         self.smearMET = smearMET
         
-        InputWithDataset.__init__(self, fileName, nFolds, nEpochs, batchSize, nLabelBins)       
+        InputWithDataset.__init__(self, fileName, nFolds, batchSize, nLabelBins)       
 
 ##############################################################################
     def getNumpyMatricesFromRawData(self):
@@ -110,10 +110,10 @@ class dataManipulations(InputWithDataset):
         #Apply all transformations to fastMTT column, as we want to plot it,
         #but remove the fastMTT column from model features
         fastMTT = features[:,1]
-        features = features[:,2:5]
+        features = features[:,2:]
 
         print("Input data shape:",features.shape)
-        print("Label bins:",self.nLabelBins)
+        print("Label bins:",self.nLabelBins, "labels shape:",labels.shape)
 
         self.numberOfFeatures = features.shape[1]
              

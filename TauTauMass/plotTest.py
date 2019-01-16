@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import argparse
+import argparse, textwrap
 import os
 import sys
 
@@ -10,53 +10,73 @@ sys.path.append('../Common/')
 
 import tensorflow as tf
 import numpy as np
+from sklearn import metrics
+
 from dataManipulations import *
 from plotUtilities import *
-from model import *
-from sklearn import metrics
+from modelUtilities import listOperations
 
 FLAGS = None
 
 #deviceName = '/cpu:0'
 #deviceName = '/:GPU:0'
 deviceName = None
+ 
 ##############################################################################
 ##############################################################################
-def makePlots(sess, myDataManipulations):
-
-    dataIter = tf.get_default_graph().get_operation_by_name("IteratorGetNext").outputs
-    response = tf.get_default_graph().get_operation_by_name("model/performance/response").outputs[0]
+def testTheModel(sess, myDataManipulations):
 
     dropout_prob = tf.get_default_graph().get_operation_by_name("model/dropout_prob").outputs[0]
     trainingModeFlag = tf.get_default_graph().get_operation_by_name("model/trainingMode").outputs[0]
 
+    dataIter = tf.get_default_graph().get_operation_by_name("IteratorGetNext").outputs
+    response = tf.get_default_graph().get_operation_by_name("model/performance/response").outputs[0]
+     
     ops = [dataIter, response]
+    labels = []
+    features = []
+    modelResult = []
+    while True:
+        try:
+            [[a, b], c] = sess.run(ops, feed_dict={dropout_prob: 0.0, trainingModeFlag: False})
+            labels.extend(a)
+            features.extend(b)
+            modelResult.extend(c)
+            break
+        except tf.errors.OutOfRangeError:
+            break
 
-    myDataManipulations.initializeDataIteratorForCVFold(sess, aFold=0, trainingMode=False)
-    result = sess.run(ops, feed_dict={dropout_prob: 0.0, trainingModeFlag: False})
-
-
-    exit(0)
-    '''
-    prob = tf.nn.softmax(logits=y)
-    onehot_labels = tf.one_hot(tf.to_int32(yTrue), depth=10, axis=-1)
-    result = sess.run([x, y, yTrue, prob, onehot_labels], feed_dict={x: xs, yTrue: ys, keep_prob: 1.0})
-
-    p = result[3]
-    onehot = result[4]
-    print("Target:",onehot[0:3])
-    print("Prediction:",p[0:3])
-    #plt.plot(p[0],"r",p[1],"g",p[2],"b")
-    plt.plot(onehot[0],"r")
-    plt.show()
+    print(features[0:2])
+    print(np.concatenate(features[0:2]))
     return
-    '''
+
+    labels = np.concatenate(labels)
+    features = np.concatenate(features[0:-1],axis=0)
+    modelResult = np.concatenate(modelResult)
+    print(labels.shape)
+    print(features.shape)
+    print(modelResult.shape)
+    return
+
+    print("len(result)",len(result))
+    print(result[0][0][0])
+    #print(result[3][0])
     
-    modelInput = result[0]
+    print("labels.shape:",labels.shape)
+    return
+
+    labels = result[0][0]
+    modelInput = result[0][1]
+
+    print("len(labels):",len(labels))
+    return
+    
     modelResult = result[1]
+
+       
     model_fastMTT = modelInput[:,1]
     model_fastMTT = np.reshape(model_fastMTT,(-1,1))
-    labels = result[2]
+
 
     mLow_H125 = 110
     mHigh_H125 = 130
@@ -91,9 +111,15 @@ def makePlots(sess, myDataManipulations):
     plotDiscriminant(modelResult, labels, "Training", doBlock=False)
 
     model_fastMTT = myDataManipulations.fastMTT
+    model_fastMTT = np.reshape(model_fastMTT, (-1,1))
     labels = myDataManipulations.labels
 
     index = (labels>mLow_H125)*(labels<mHigh_H125)
+
+    print("modelResult.shape:",modelResult.shape)
+    print("model_fastMTT.shape:",model_fastMTT.shape)
+    print("index.shape:",index.shape)
+    
     modelResult_H125 = model_fastMTT[index]
     labels_H125 = labels[index]
 
@@ -138,55 +164,77 @@ def makePlots(sess, myDataManipulations):
     y = labels[0:numberOfEvents]    
     ratio = np.divide(x, y)
     plotVariable(labels[0:numberOfEvents], ratio, plotTitle = "Ratio", doBlock = True)
-
 ##############################################################################
 ##############################################################################
-def plot():
+def initializeIterator(sess, myDataManipulations):
 
-    with tf.Session(graph=tf.Graph()) as sess:
+    dropout_prob = tf.get_default_graph().get_operation_by_name("model/dropout_prob").outputs[0]
+    trainingModeFlag = tf.get_default_graph().get_operation_by_name("model/trainingMode").outputs[0]
 
-        print("Available devices:")
-        devices = sess.list_devices()
-        for d in devices:
-            print(d.name)
+    features = myDataManipulations.features
+    labels = myDataManipulations.labels
+    
+    x = tf.get_default_graph().get_operation_by_name("data/x-input").outputs[0]
+    yTrue = tf.get_default_graph().get_operation_by_name("data/y-input").outputs[0]
+    iterator_init_op = tf.get_default_graph().get_operation_by_name("data/make_initializer")
+    sess.run([iterator_init_op], feed_dict={x: features, yTrue: labels, dropout_prob: 0.0, trainingModeFlag: False})
 
-        nEpochs = 1
-        batchSize = 109981
-        nFolds = 2
-        nLabelBins = 1
-        fileName = FLAGS.test_data_file
-
-        myDataManipulations = dataManipulations(fileName, nFolds, nEpochs, nLabelBins, batchSize, smearMET=False)
-
-        tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING], FLAGS.model_dir)
+    myDataManipulations.dataIterator.get_next()
         
-        makePlots(sess, myDataManipulations)            
 ##############################################################################
+##############################################################################
+def test():
+
+    sess = tf.Session()
+
+    print("Available devices:")
+    devices = sess.list_devices()
+    for d in devices:
+        print(d.name)
+
+    nFolds = 10 
+    batchSize = 200000
+    fileName = FLAGS.test_data_file
+    nLabelBins = 1
+
+    tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING], FLAGS.model_dir)
+
+    myDataManipulations = dataManipulations(fileName, nFolds, batchSize, nLabelBins,  smearMET=False)
+    initializeIterator(sess, myDataManipulations)
+
+    if FLAGS.debug>0:
+         listOperations()
+
+    testTheModel(sess, myDataManipulations)
+    
 ##############################################################################
 ##############################################################################
 def main(_):
 
-  plot()
-##############################################################################
+  test()
 ##############################################################################
 ##############################################################################
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
 
   parser.add_argument('--test_data_file', type=str,
-      default=os.path.join(os.getenv('PWD', './'),
-                           'data/htt_features.pkl'),
-      help='File containing test examples')
-
+                      default=os.path.join(os.getenv('PWD', './'),
+                                           'data/htt_features_train.pkl'),
+                      help='Directory for storing training data')
 
   parser.add_argument('--model_dir', type=str,
-      default=os.path.join(os.getenv('PWD', './'),
-                           'model'),
-      help='Directory for storing model state')
+                      default=os.path.join(os.getenv('PWD', './'),
+                                           'model'),
+                      help='Directory for storing model state')
+
+  parser.add_argument('--debug', type=int, default=0,
+                       help=textwrap.dedent('''\
+                      Runs debug methods: 
+                      0 - disabled 
+                      1 - list graph operations'''))
 
   FLAGS, unparsed = parser.parse_known_args()
 
   tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
-##############################################################################
 ##############################################################################
 ##############################################################################
