@@ -24,6 +24,10 @@ deviceName = None
  
 ##############################################################################
 ##############################################################################
+def getModelResult(sess, myDataManipulations):
+
+
+
 def testTheModel(sess, myDataManipulations):
 
     dropout_prob = tf.get_default_graph().get_operation_by_name("model/dropout_prob").outputs[0]
@@ -42,39 +46,14 @@ def testTheModel(sess, myDataManipulations):
             labels.extend(a)
             features.extend(b)
             modelResult.extend(c)
-            break
         except tf.errors.OutOfRangeError:
             break
 
-    print(features[0:2])
-    print(np.concatenate(features[0:2]))
-    return
-
     labels = np.concatenate(labels)
-    features = np.concatenate(features[0:-1],axis=0)
+    features = np.stack(features)
     modelResult = np.concatenate(modelResult)
-    print(labels.shape)
-    print(features.shape)
-    print(modelResult.shape)
-    return
-
-    print("len(result)",len(result))
-    print(result[0][0][0])
-    #print(result[3][0])
-    
-    print("labels.shape:",labels.shape)
-    return
-
-    labels = result[0][0]
-    modelInput = result[0][1]
-
-    print("len(labels):",len(labels))
-    return
-    
-    modelResult = result[1]
-
-       
-    model_fastMTT = modelInput[:,1]
+        
+    model_fastMTT = features[:,1]
     model_fastMTT = np.reshape(model_fastMTT,(-1,1))
 
 

@@ -100,28 +100,30 @@ class Model:
 ##############################################################################
     def __init__(self, inputIterator, nNeurons, nOutputNeurons, learning_rate, lambdaLagrange):
 
-        self.myLayers = [inputIterator[1]]
-        self.yTrue = inputIterator[0]
+        with tf.name_scope('model'):
+
+            self.myLayers = [inputIterator[1]]
+            self.yTrue = inputIterator[0]
                 
-        self.nNeurons = nNeurons
-        self.nOutputNeurons = nOutputNeurons
+            self.nNeurons = nNeurons
+            self.nOutputNeurons = nOutputNeurons
         
-        self.nLayers = len(self.nNeurons)
+            self.nLayers = len(self.nNeurons)
 
-        self.learning_rate = learning_rate
-        self.lambdaLagrange = lambdaLagrange
+            self.learning_rate = learning_rate
+            self.lambdaLagrange = lambdaLagrange
 
-        self.trainingMode = tf.placeholder(tf.bool, name="trainingMode")
-        self.dropout_prob = tf.placeholder(tf.float32, name="dropout_prob")
+            self.trainingMode = tf.placeholder(tf.bool, name="trainingMode")
+            self.dropout_prob = tf.placeholder(tf.float32, name="dropout_prob")
 
-        self.addFCLayers()
-        self.addDropoutLayer()
-        self.addOutputLayer()
-        self.defineOptimizationStrategy()
-
-        # Merge all the summaries
-        with tf.name_scope('monitor'): 
-            merged = tf.summary.merge_all()
+            self.addFCLayers()
+            self.addDropoutLayer()
+            self.addOutputLayer()
+            self.defineOptimizationStrategy()
+            
+            # Merge all the summaries
+            with tf.name_scope('monitor'): 
+                merged = tf.summary.merge_all()
         
 ##############################################################################
 ##############################################################################

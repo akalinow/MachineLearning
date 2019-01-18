@@ -1,5 +1,65 @@
 import tensorflow as tf
 import numpy as np
+import argparse, textwrap
+
+from dataManipulations import *
+from model import *
+
+##############################################################################
+##############################################################################
+class Framework:
+
+##############################################################################
+##############################################################################
+    def initializeParser(self):
+
+        self.myParser = argparse.ArgumentParser()
+
+        self.myParser.add_argument('--max_epoch', type=int, default=50,
+                                   help='Number of epochs')
+
+        self.myParser.add_argument('--learning_rate', type=float, default=0.001,
+                                   help='Initial learning rate')
+        
+        self.myParser.add_argument('--lambda_lagrange', type=float, default=0.1,
+                                   help='Largange multipler for L2 loss')
+
+        self.myParser.add_argument('--dropout', type=float, default=0.2,
+                                   help='Drop probability for training dropout.')
+
+        self.myParser.add_argument('--train_data_file', type=str,
+                                   default=os.path.join(os.getenv('PWD', './'),
+                                                        'data/htt_features_train.pkl'),
+                                   help='Directory for storing training data')
+
+        self.myParser.add_argument('--model_dir', type=str,
+                                   default=os.path.join(os.getenv('PWD', './'),
+                                                        'model'),
+                                   help='Directory for storing model state')
+        
+        self.myParser.add_argument('--log_dir', type=str,
+                                   default=os.path.join(os.getenv('PWD', './'),
+                                                        'logs'),
+                                   help='Summaries log directory')
+        
+        self.myParser.add_argument('--debug', type=int, default=0,
+                                   help=textwrap.dedent('''\
+                                   Runs debug methods: 
+                                   0 - disabled 
+                                   1 - list graph operations 
+                                   2 - run debug method defined by the user'''))        
+##############################################################################
+##############################################################################
+def parse_known_args(self):
+    
+    self.FLAGS, self.unparsed = self.myParser.parse_known_args()
+
+##############################################################################
+##############################################################################
+def __init__(self):
+
+         initializeParser()
+
 
 ##############################################################################
 ##############################################################################
