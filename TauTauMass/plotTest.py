@@ -24,10 +24,6 @@ deviceName = None
  
 ##############################################################################
 ##############################################################################
-def getModelResult(sess, myDataManipulations):
-
-
-
 def testTheModel(sess, myDataManipulations):
 
     dropout_prob = tf.get_default_graph().get_operation_by_name("model/dropout_prob").outputs[0]
@@ -77,17 +73,20 @@ def testTheModel(sess, myDataManipulations):
     labels_S_B = np.concatenate((labels_S, labels_B))
     fpr_training, tpr_training, thresholds = metrics.roc_curve(labels_S_B, scores, pos_label=1)    
 
-    ####    
+    ####
+    modelResult = modelResult_Z90
+    labels = labels_Z90
+    plotDiscriminant(modelResult, labels, "DY Training", doBlock=False)
+    
     modelResult = modelResult_H125
     labels = labels_H125
-    ####
+    plotDiscriminant(modelResult, labels, "ggH125 Training", doBlock=False)
     
     pull = (modelResult - labels)/labels
     print("Model: NN",
           "mean pull:", np.mean(pull),
           "pull RMS:", np.std(pull, ddof=1))
-
-    plotDiscriminant(modelResult, labels, "Training", doBlock=False)
+    
 
     model_fastMTT = myDataManipulations.fastMTT
     model_fastMTT = np.reshape(model_fastMTT, (-1,1))
@@ -113,24 +112,26 @@ def testTheModel(sess, myDataManipulations):
     fpr_fastMTT, tpr_fastMTT, thresholds = metrics.roc_curve(labels_S_B, scores, pos_label=1)    
 
     ####
+    model_fastMTT = modelResult_Z90
+    labels = labels_Z90
+    plotDiscriminant(model_fastMTT, labels, "DY fastMTT", doBlock=False)
+    
     model_fastMTT = modelResult_H125
     labels = labels_H125
-    ####
+    plotDiscriminant(model_fastMTT, labels, "ggH125 fastMTT", doBlock=False)
     
     pull = ( model_fastMTT - labels)/labels
     print("Model: fastMTT",
           "mean pull:", np.mean(pull),
           "pull RMS:", np.std(pull, ddof=1))
-
-    plotDiscriminant(model_fastMTT, labels, "fastMTT", doBlock=False)
-
-    fig = plt.figure(3)
+    
+    fig = plt.figure(5)
     ax = fig.add_subplot(1, 1, 1)    
     #ax.plot([0, 1], [0, 1], 'k--')
     ax.plot(tpr_training, fpr_training, label='Training')
     ax.plot(tpr_fastMTT, fpr_fastMTT, label='fastMTT')
     ax.set_xlim(0.4,0.6)
-    ax.set_ylim(0.0,0.2)
+    ax.set_ylim(0.0,0.05)
     plt.xlabel('True positive rate')
     plt.ylabel('False positive rate')
     plt.title('ROC curve')

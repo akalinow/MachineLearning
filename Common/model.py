@@ -54,7 +54,8 @@ class Model:
                 onehot_labels = tf.one_hot(tf.to_int32(self.yTrue), depth=self.nOutputNeurons, axis=-1)
                 tf.losses.softmax_cross_entropy(onehot_labels=onehot_labels, logits=self.myLayers[-1], weights=samplesWeights)
             else:
-                mean_squared_error = tf.losses.mean_squared_error(labels=self.yTrue, predictions=self.myLayers[-1], weights=samplesWeights)
+                #mean_squared_error = tf.losses.mean_squared_error(labels=self.yTrue, predictions=self.myLayers[-1], weights=samplesWeights)
+                absolute_difference = tf.losses.absolute_difference(labels=self.yTrue, predictions=self.myLayers[-1], weights=samplesWeights)
 
             l2_regularizer =tf.contrib.layers.l2_regularizer(self.lambdaLagrange)
             modelParameters   = tf.trainable_variables()
