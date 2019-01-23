@@ -16,7 +16,7 @@ pip install --upgrade tensorflow pandas scikit-learn matplotlib numpy
 Train the NN (requires TensorFlow, pandas, scikit-learn, matplotlib, numpy)
 
 ```
-python train.py --max_epoch 500 --model_dir model/1/ --train_data_file data/htt_features_train.pkl
+python train.py --max_epoch 500 --model_dir model/1/ --train_data_file data/htt_features_train.pkl --batchSize 4096
 ```
 
 Test on full simulation ggH125 events

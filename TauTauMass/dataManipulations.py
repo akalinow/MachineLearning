@@ -73,7 +73,7 @@ class dataManipulations(InputWithDataset):
 
         #leg2GenEnergy = leg2GenP4[:,0]
         #leg2GenEnergy = np.reshape(leg2GenEnergy, (-1,1))
-        features = np.hstack((genMass, fastMTT, leg1P4, leg2P4, met))
+        features = np.hstack((genMass, fastMTT, caMass, visMass, leg1P4, leg2P4, met))
                
         #Select events with MET>10
         index = met[:,0]>10 
@@ -107,19 +107,24 @@ class dataManipulations(InputWithDataset):
             labels = features[:,0]
         '''
 
-        #Apply all transformations to fastMTT column, as we want to plot it,
-        #but remove the fastMTT column from model features
+        #Apply all transformations to fastMTT, caMass and visMass columns,
+        #as we want to plot it, but remove those columns from the model features
         fastMTT = features[:,1]
-        features = features[:,2:]
+        caMass = features[:,2]
+        visMass = features[:,3]
+        features = features[:,4:]
 
         print("Input data shape:",features.shape)
         print("Label bins:",self.nLabelBins, "labels shape:",labels.shape)
+        print("caMass.shape",caMass.shape)
 
         self.numberOfFeatures = features.shape[1]
              
         assert features.shape[0] == labels.shape[0]
 
         self.fastMTT = fastMTT
+        self.caMass = caMass
+        self.visMass = visMass
         self.features = features
         self.labels = labels
 

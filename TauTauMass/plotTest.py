@@ -24,7 +24,9 @@ deviceName = None
  
 ##############################################################################
 ##############################################################################
-def testTheModel(sess, myDataManipulations):
+def getModelResult(sess, myDataManipulations):
+
+    initializeIterator(sess, myDataManipulations)
 
     dropout_prob = tf.get_default_graph().get_operation_by_name("model/dropout_prob").outputs[0]
     trainingModeFlag = tf.get_default_graph().get_operation_by_name("model/trainingMode").outputs[0]
@@ -48,102 +50,60 @@ def testTheModel(sess, myDataManipulations):
     labels = np.concatenate(labels)
     features = np.stack(features)
     modelResult = np.concatenate(modelResult)
+
+    return labels, features, modelResult
+    
+##############################################################################
+##############################################################################
+def getMassRange(sess, myDataManipulations, lowMass, highMass, modelType):
+
+    if modelType=="training":
+        labels, features, result = getModelResult(sess, myDataManipulations)
+    elif modelType=="fastMTT":
+        labels = myDataManipulations.labels
+        result = myDataManipulations.fastMTT
+        result = np.reshape(result, (-1,1))
+    elif modelType=="caMass":
+        labels = myDataManipulations.labels
+        result = myDataManipulations.caMass
+        result = np.reshape(result, (-1,1))
+    elif modelType=="visMass":
+        labels = myDataManipulations.labels
+        result = myDataManipulations.visMass
+        result = np.reshape(result, (-1,1))
+
         
-    model_fastMTT = features[:,1]
-    model_fastMTT = np.reshape(model_fastMTT,(-1,1))
+    index = (labels>lowMass)*(labels<highMass)
+    result_range = result[index]
+    labels_range = labels[index]
 
+    return labels_range, result_range
+##############################################################################
+##############################################################################
+def testTheModel(sess, myDataManipulations, modelType):
 
-    mLow_H125 = 110
-    mHigh_H125 = 130
+    labelsZ90, resultZ90 = getMassRange(sess, myDataManipulations, 80, 100, modelType)
+    labelsH125, resultH125 = getMassRange(sess, myDataManipulations, 130, 140, modelType)
 
-    mLow_Z90 = 80
-    mHigh_Z90 = 100
+    pullZ90 = (resultZ90 - labelsZ90)/labelsZ90
+    pullH125 = (resultH125 - labelsH125)/labelsH125
+    print("Mass range: Z90",
+          "mean pull:", np.mean(pullZ90),
+          "pull RMS:", np.std(pullZ90, ddof=1))
+    print("Mass range: H125",
+          "mean pull:", np.mean(pullH125),
+          "pull RMS:", np.std(pullH125, ddof=1))
 
-    index = (labels>mLow_H125)*(labels<mHigh_H125)
-    modelResult_H125 = modelResult[index]
-    labels_H125 = labels[index]
+    plotDiscriminant(resultZ90, labelsZ90, modelType+" Z90", doBlock=False)
+    plotDiscriminant(resultH125, labelsH125, modelType+" H125", doBlock=True)
 
-    index = (labels>mLow_Z90)*(labels<mHigh_Z90)
-    modelResult_Z90 = modelResult[index]
-    labels_Z90 = labels[index]
-
-    scores = np.concatenate((modelResult_H125, modelResult_Z90))
-    labels_S = np.ones(len(modelResult_H125))
-    labels_B = np.zeros(len(modelResult_Z90))
+    scores = np.concatenate((resultH125, resultZ90))
+    labels_S = np.ones(len(resultH125))
+    labels_B = np.zeros(len(resultZ90))
     labels_S_B = np.concatenate((labels_S, labels_B))
-    fpr_training, tpr_training, thresholds = metrics.roc_curve(labels_S_B, scores, pos_label=1)    
+    fpr, tpr, thresholds = metrics.roc_curve(labels_S_B, scores, pos_label=1) 
 
-    ####
-    modelResult = modelResult_Z90
-    labels = labels_Z90
-    plotDiscriminant(modelResult, labels, "DY Training", doBlock=False)
-    
-    modelResult = modelResult_H125
-    labels = labels_H125
-    plotDiscriminant(modelResult, labels, "ggH125 Training", doBlock=False)
-    
-    pull = (modelResult - labels)/labels
-    print("Model: NN",
-          "mean pull:", np.mean(pull),
-          "pull RMS:", np.std(pull, ddof=1))
-    
-
-    model_fastMTT = myDataManipulations.fastMTT
-    model_fastMTT = np.reshape(model_fastMTT, (-1,1))
-    labels = myDataManipulations.labels
-
-    index = (labels>mLow_H125)*(labels<mHigh_H125)
-
-    print("modelResult.shape:",modelResult.shape)
-    print("model_fastMTT.shape:",model_fastMTT.shape)
-    print("index.shape:",index.shape)
-    
-    modelResult_H125 = model_fastMTT[index]
-    labels_H125 = labels[index]
-
-    index = (labels>mLow_Z90)*(labels<mHigh_Z90)
-    modelResult_Z90 = model_fastMTT[index]
-    labels_Z90 = labels[index]
-
-    scores = np.concatenate((modelResult_H125, modelResult_Z90))
-    labels_S = np.ones(len(modelResult_H125))
-    labels_B = np.zeros(len(modelResult_Z90))
-    labels_S_B = np.concatenate((labels_S, labels_B))
-    fpr_fastMTT, tpr_fastMTT, thresholds = metrics.roc_curve(labels_S_B, scores, pos_label=1)    
-
-    ####
-    model_fastMTT = modelResult_Z90
-    labels = labels_Z90
-    plotDiscriminant(model_fastMTT, labels, "DY fastMTT", doBlock=False)
-    
-    model_fastMTT = modelResult_H125
-    labels = labels_H125
-    plotDiscriminant(model_fastMTT, labels, "ggH125 fastMTT", doBlock=False)
-    
-    pull = ( model_fastMTT - labels)/labels
-    print("Model: fastMTT",
-          "mean pull:", np.mean(pull),
-          "pull RMS:", np.std(pull, ddof=1))
-    
-    fig = plt.figure(5)
-    ax = fig.add_subplot(1, 1, 1)    
-    #ax.plot([0, 1], [0, 1], 'k--')
-    ax.plot(tpr_training, fpr_training, label='Training')
-    ax.plot(tpr_fastMTT, fpr_fastMTT, label='fastMTT')
-    ax.set_xlim(0.4,0.6)
-    ax.set_ylim(0.0,0.05)
-    plt.xlabel('True positive rate')
-    plt.ylabel('False positive rate')
-    plt.title('ROC curve')
-    plt.legend(loc='best')
-    plt.show()
-
-    numberOfEvents = len(modelResult)
-    x = modelResult
-    x = np.reshape(x, (-1))
-    y = labels[0:numberOfEvents]    
-    ratio = np.divide(x, y)
-    plotVariable(labels[0:numberOfEvents], ratio, plotTitle = "Ratio", doBlock = True)
+    return fpr, tpr
 ##############################################################################
 ##############################################################################
 def initializeIterator(sess, myDataManipulations):
@@ -180,12 +140,14 @@ def test():
     tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING], FLAGS.model_dir)
 
     myDataManipulations = dataManipulations(fileName, nFolds, batchSize, nLabelBins,  smearMET=False)
-    initializeIterator(sess, myDataManipulations)
-
+    
     if FLAGS.debug>0:
          listOperations()
 
-    testTheModel(sess, myDataManipulations)
+    #fpr_training, tpr_training = testTheModel(sess, myDataManipulations, "training")
+    #fpr_fastMTT, tpr_fastMTT = testTheModel(sess, myDataManipulations, "fastMTT")
+    #fpr_caMass, tpr_caMass = testTheModel(sess, myDataManipulations, "caMass")
+    fpr_visMass, tpr_visMass = testTheModel(sess, myDataManipulations, "visMass")
     
 ##############################################################################
 ##############################################################################
