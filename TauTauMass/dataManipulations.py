@@ -84,13 +84,7 @@ class dataManipulations(InputWithDataset):
 
         index = features[:,0]>50 
         features = features[index]
-
-        index = features[:,1]<250
-        #features = features[index]
-        
-        index = features[:,1]>2 
-        #features = features[index]
-
+    
         np.random.shuffle(features)
 
         #Quantize the output variable into self.nLabelBins

@@ -12,7 +12,7 @@ class InputWithDataset:
 
     def getNumpyMatricesFromRawData(self):
 
-       print("Define",__name__,"in daughter class.")
+       print("Define the",__name__,"metrhod in your daughter class.")
 
 ##############################################################################
 ##############################################################################       
@@ -28,7 +28,8 @@ class InputWithDataset:
 
         aDataset = tf.data.Dataset.from_tensor_slices((self.labels_placeholder, self.features_placeholder))
         aDataset = aDataset.batch(self.batchSize)
-        self.aDataset = aDataset.prefetch(self.batchSize)
+        self.aDataset = aDataset.cache()
+        #self.aDataset = aDataset.prefetch(4*self.batchSize)
 
 ##############################################################################
 ##############################################################################
