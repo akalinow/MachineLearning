@@ -85,6 +85,9 @@ def testTheModel(sess, myDataManipulations, modelType):
     labelsZ90, resultZ90 = getMassRange(sess, myDataManipulations, 80, 100, modelType)
     labelsH125, resultH125 = getMassRange(sess, myDataManipulations, 130, 140, modelType)
 
+    print("labelsZ90:",labelsZ90[0:10])
+    print("resultZ90:",resultZ90[0:10])
+
     pullZ90 = (resultZ90 - labelsZ90)/labelsZ90
     pullH125 = (resultH125 - labelsH125)/labelsH125
     print("Model:",modelType)
@@ -136,7 +139,7 @@ def test():
     nFolds = 10 
     batchSize = 200000
     fileName = FLAGS.test_data_file
-    nLabelBins = 1
+    nLabelBins = FLAGS.nLabelBins
 
     tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING], FLAGS.model_dir)
 
@@ -146,6 +149,7 @@ def test():
          listOperations()
 
     fpr_training, tpr_training = testTheModel(sess, myDataManipulations, "training")
+    return
     fpr_fastMTT, tpr_fastMTT = testTheModel(sess, myDataManipulations, "fastMTT")
     fpr_caMass, tpr_caMass = testTheModel(sess, myDataManipulations, "caMass")
     #fpr_visMass, tpr_visMass = testTheModel(sess, myDataManipulations, "visMass")
@@ -157,8 +161,8 @@ def test():
     ax.plot(tpr_fastMTT, fpr_fastMTT, label='fastMTT')
     ax.plot(tpr_caMass, fpr_caMass, label='caMass')
     #ax.plot(tpr_visMass, fpr_visMass, label='visMass')
-    ax.set_xlim(0.4,0.6)
-    ax.set_ylim(0.0,0.2)
+    ax.set_xlim(0.25,0.75)
+    ax.set_ylim(0.0,0.05)
     plt.xlabel('True positive rate')
     plt.ylabel('False positive rate')
     plt.title('ROC curve')
@@ -184,6 +188,9 @@ if __name__ == '__main__':
                       default=os.path.join(os.getenv('PWD', './'),
                                            'model'),
                       help='Directory for storing model state')
+
+  parser.add_argument('--nLabelBins', type=int, default=1,
+                      help='Dimension of the input label')
 
   parser.add_argument('--debug', type=int, default=0,
                        help=textwrap.dedent('''\

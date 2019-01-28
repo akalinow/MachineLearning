@@ -28,8 +28,7 @@ class InputWithDataset:
 
         aDataset = tf.data.Dataset.from_tensor_slices((self.labels_placeholder, self.features_placeholder))
         aDataset = aDataset.batch(self.batchSize)
-        self.aDataset = aDataset.cache()
-        #self.aDataset = aDataset.prefetch(4*self.batchSize)
+        self.aDataset = aDataset.prefetch(buffer_size=None)
 
 ##############################################################################
 ##############################################################################
@@ -76,7 +75,7 @@ class InputWithDataset:
 
         with tf.name_scope('data'):
             self.features_placeholder = tf.placeholder(tf.float32, name='x-input', shape=(None, self.numberOfFeatures))
-            self.labels_placeholder = tf.placeholder(tf.float32, name='y-input', shape=(None, self.nLabelBins))
+            self.labels_placeholder = tf.placeholder(tf.float32, name='y-input', shape=(None, 1))
 
             self.makeDataset()
             self.makeDataIterator()
@@ -88,12 +87,4 @@ class InputWithDataset:
     
 ##############################################################################
 ##############################################################################
-def makeFeedDict(sess, dataIter):
-    aBatch = sess.run(dataIter)
-    x = aBatch[0]
-    y = np.reshape(aBatch[1],(-1,1))
-    return x, y
 
-##############################################################################
-##############################################################################
-##############################################################################

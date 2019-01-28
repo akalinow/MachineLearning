@@ -55,21 +55,15 @@ class dataManipulations(InputWithDataset):
         jet2P4 = np.transpose(jet2P4)
         met = np.transpose(met)
 
-        leg1Pt = np.sqrt(leg1P4[:,1]**2 + leg1P4[:,2]**2)
-        leg2Pt = np.sqrt(leg2P4[:,1]**2 + leg2P4[:,2]**2)
-        leg1Pt = np.reshape(leg1Pt, (-1,1))
-        leg2Pt = np.reshape(leg2Pt, (-1,1)) 
-        metMag = met[:,0]
-        #smear met
-        if self.smearMET:            
-            sigma = 2.6036 -0.0769104*metMag + 0.00102558*metMag*metMag-4.96276e-06*metMag*metMag*metMag
+        sigma = 0.0
+        if self.smearMET:
             print("Smearing metX and metY with sigma =",sigma)
-            metX = met[:,1]*(1.0 + sigma*np.random.randn(met.shape[0]))
-            metY = met[:,2]*(1.0 + sigma*np.random.randn(met.shape[0]))
-            metMag = np.sqrt(metX**2 + metY**2)
-            met = np.stack((metMag, metX, metY), axis=1)
+            sigma = 2.6036 -0.0769104*metMag + 0.00102558*metMag*metMag-4.96276e-06*metMag*metMag*metMag            
 
-        metMag = np.reshape(metMag, (-1,1))    
+        metX = met[:,1]*(1.0 + sigma*np.random.randn(met.shape[0]))
+        metY = met[:,2]*(1.0 + sigma*np.random.randn(met.shape[0]))
+        metMag = np.sqrt(metX**2 + metY**2)
+        met = np.stack((metMag, metX, metY), axis=1)
 
         #leg2GenEnergy = leg2GenP4[:,0]
         #leg2GenEnergy = np.reshape(leg2GenEnergy, (-1,1))
@@ -89,17 +83,16 @@ class dataManipulations(InputWithDataset):
 
         #Quantize the output variable into self.nLabelBins
         #or leave it as a floating point number        
-        labels = features[:,0]
-        labels = np.reshape(labels, (-1,1))
-        '''
         if self.nLabelBins>1:
             est = preprocessing.KBinsDiscretizer(n_bins=self.nLabelBins, encode='ordinal', strategy='uniform')
             tmp = np.reshape(features[:,0], (-1, 1))
-            est.fit(tmp)
-            labels = est.transform(tmp) + 1#Avoid bin number 0
+            labels = est.fit(tmp)
+            labels = est.transform(tmp)
+            print(est.get_params())
         else:                
             labels = features[:,0]
-        '''
+
+        labels = np.reshape(labels, (-1,1))
 
         #Apply all transformations to fastMTT, caMass and visMass columns,
         #as we want to plot it, but remove those columns from the model features

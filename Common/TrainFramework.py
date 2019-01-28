@@ -102,20 +102,21 @@ class TrainFramework:
         ops.append(mergedSummary)
         if isTraining:
             ops.insert(0, train_step)
-            
+
         result = []
         while True:
             try:
                 result = self.mySess.run(ops, feed_dict={dropout_prob: self.FLAGS.dropout, trainingMode: isTraining})
+                pass
             except tf.errors.OutOfRangeError:
                 break
-        
+
         if iEpoch%self.printoutStep==0:
             print("Epoch:",iEpoch)
             print("{runType}".format(runType="Training" if isTraining else "Validation"))
-            
+
             trainSummary = result[-1]
-            aWriter.add_summary(trainSummary, iEpoch)  
+            aWriter.add_summary(trainSummary, iEpoch)
             
             ops = tf.get_collection("MY_RUNNING_VALS")
             result = self.mySess.run(ops)
@@ -136,11 +137,10 @@ class TrainFramework:
         for iEpoch in range(0,self.FLAGS.max_epoch):
             self.mySess.run([init_local])
             self.myDataManipulations.initializeDataIteratorForCVFold(self.mySess, aFold=0, trainingMode=True)
-            self.runOverEpoch(iEpoch, aTrainWriter, isTraining=True)
-
+            self.runOverEpoch(iEpoch, aTrainWriter, isTraining=True)            
             if iEpoch%self.printoutStep==0:
                 self.myDataManipulations.initializeDataIteratorForCVFold(self.mySess, aFold=0, trainingMode=False)
-                self.runOverEpoch(iEpoch, aValidationWriter, isTraining=False)
+                self.runOverEpoch(iEpoch, aValidationWriter, isTraining=False)            
 
         aTrainWriter.close()
         aValidationWriter.close()

@@ -51,11 +51,14 @@ class Model:
             samplesWeights = 1.0
 
             if self.nOutputNeurons>1:
-                onehot_labels = tf.one_hot(tf.to_int32(self.yTrue), depth=self.nOutputNeurons, axis=-1)
+                onehot_labels = tf.one_hot(tf.to_int32(self.yTrue), depth=self.nOutputNeurons, axis=1)
+                onehot_labels = tf.reshape(onehot_labels, (-1, self.nOutputNeurons))
+                print("self.yTrue.shape:",self.yTrue.shape)
+                print("onehot_labels.shape:",onehot_labels.shape)
                 tf.losses.softmax_cross_entropy(onehot_labels=onehot_labels, logits=self.myLayers[-1], weights=samplesWeights)
             else:
                 mean_squared_error = tf.losses.mean_squared_error(labels=self.yTrue, predictions=self.myLayers[-1], weights=samplesWeights)
-                absolute_difference = tf.losses.absolute_difference(labels=self.yTrue, predictions=self.myLayers[-1], weights=samplesWeights)
+                #absolute_difference = tf.losses.absolute_difference(labels=self.yTrue, predictions=self.myLayers[-1], weights=samplesWeights)
 
             l2_regularizer =tf.contrib.layers.l2_regularizer(self.lambdaLagrange)
             modelParameters   = tf.trainable_variables()
@@ -70,7 +73,8 @@ class Model:
             response = self.myLayers[-1]
             if self.nOutputNeurons>1:
                 response = tf.nn.softmax(response)
-                response = tf.math.argmax(response, axis=(1))
+                #r1.12 response = tf.math.argmax(response, axis=(1))
+                response = tf.argmax(response, axis=(1))
                 response = tf.to_float(response)
                 
             response = tf.reshape(response, (-1,1), name="response")
