@@ -73,34 +73,31 @@ class dataManipulations(InputWithDataset):
         index = met[:,0]>10 
         features = features[index]
 
-        index = features[:,0]<250 
-        features = features[index]
-
-        index = features[:,0]>50 
+        #Select usefull mass range
+        minMass = 50
+        maxMass = 250
+        index = (features[:,0]>minMass)*(features[:,0]<maxMass)
         features = features[index]
     
         np.random.shuffle(features)
 
-        #Quantize the output variable into self.nLabelBins
-        #or leave it as a floating point number        
-        if self.nLabelBins>1:
-            est = preprocessing.KBinsDiscretizer(n_bins=self.nLabelBins, encode='ordinal', strategy='uniform')
-            tmp = np.reshape(features[:,0], (-1, 1))
-            labels = est.fit(tmp)
-            labels = est.transform(tmp)
-            print(est.get_params())
-        else:                
-            labels = features[:,0]
-
-        labels = np.reshape(labels, (-1,1))
-
-        #Apply all transformations to fastMTT, caMass and visMass columns,
+         #Apply all transformations to fastMTT, caMass and visMass columns,
         #as we want to plot it, but remove those columns from the model features
+        labels = features[:,0]
         fastMTT = features[:,1]
         caMass = features[:,2]
         visMass = features[:,3]
         features = features[:,4:]
+        
+        #Quantize the output variable into self.nLabelBins
+        #or leave it as a floating point number
+        if self.nLabelBins>1:
+            bins = np.arange(0, maxMass, step=maxMass/self.nLabelBins)
+            bins = np.append(bins,999)
+            labels = pd.cut(labels, bins, labels=False)
 
+        labels = np.reshape(labels, (-1,1))
+       
         print("Input data shape:",features.shape)
         print("Label bins:",self.nLabelBins, "labels shape:",labels.shape)
         print("caMass.shape",caMass.shape)

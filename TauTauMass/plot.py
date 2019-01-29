@@ -58,7 +58,10 @@ def getModelResult(sess, myDataManipulations):
 def getMassRange(sess, myDataManipulations, lowMass, highMass, modelType):
 
     if modelType=="training":
+        stepSize = 10
         labels, features, result = getModelResult(sess, myDataManipulations)
+        labels *= stepSize
+        result *= stepSize
     elif modelType=="fastMTT":
         labels = myDataManipulations.labels
         result = myDataManipulations.fastMTT
@@ -72,8 +75,7 @@ def getMassRange(sess, myDataManipulations, lowMass, highMass, modelType):
         result = myDataManipulations.visMass
         result = np.reshape(result, (-1,1))
 
-        
-    index = (labels>lowMass)*(labels<highMass)*(result>0)*(result<300)
+    index = (labels>=lowMass)*(labels<highMass)*(result>0)*(result<300)
     result_range = result[index]
     labels_range = labels[index]
 
@@ -85,11 +87,9 @@ def testTheModel(sess, myDataManipulations, modelType):
     labelsZ90, resultZ90 = getMassRange(sess, myDataManipulations, 80, 100, modelType)
     labelsH125, resultH125 = getMassRange(sess, myDataManipulations, 130, 140, modelType)
 
-    print("labelsZ90:",labelsZ90[0:10])
-    print("resultZ90:",resultZ90[0:10])
-
     pullZ90 = (resultZ90 - labelsZ90)/labelsZ90
     pullH125 = (resultH125 - labelsH125)/labelsH125
+
     print("Model:",modelType)
     print("Mass range: Z90",
           "mean pull:", np.mean(pullZ90),
@@ -99,7 +99,7 @@ def testTheModel(sess, myDataManipulations, modelType):
           "pull RMS:", np.std(pullH125, ddof=1))
 
     plotDiscriminant(resultZ90, labelsZ90, modelType+" Z90", doBlock=False)
-    plotDiscriminant(resultH125, labelsH125, modelType+" H125", doBlock=False)
+    plotDiscriminant(resultH125, labelsH125, modelType+" H125", doBlock=True)
 
     scores = np.concatenate((resultH125, resultZ90))
     labels_S = np.ones(len(resultH125))
@@ -137,7 +137,7 @@ def test():
         print(d.name)
 
     nFolds = 10 
-    batchSize = 200000
+    batchSize = 100000
     fileName = FLAGS.test_data_file
     nLabelBins = FLAGS.nLabelBins
 
@@ -149,7 +149,9 @@ def test():
          listOperations()
 
     fpr_training, tpr_training = testTheModel(sess, myDataManipulations, "training")
-    return
+
+    return#TEST
+
     fpr_fastMTT, tpr_fastMTT = testTheModel(sess, myDataManipulations, "fastMTT")
     fpr_caMass, tpr_caMass = testTheModel(sess, myDataManipulations, "caMass")
     #fpr_visMass, tpr_visMass = testTheModel(sess, myDataManipulations, "visMass")
