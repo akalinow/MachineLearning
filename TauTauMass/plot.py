@@ -58,7 +58,7 @@ def getModelResult(sess, myDataManipulations):
 def getMassRange(sess, myDataManipulations, lowMass, highMass, modelType):
 
     if modelType=="training":
-        stepSize = 10
+        stepSize = 1
         labels, features, result = getModelResult(sess, myDataManipulations)
         labels *= stepSize
         result *= stepSize
@@ -99,7 +99,7 @@ def testTheModel(sess, myDataManipulations, modelType):
           "pull RMS:", np.std(pullH125, ddof=1))
 
     plotDiscriminant(resultZ90, labelsZ90, modelType+" Z90", doBlock=False)
-    plotDiscriminant(resultH125, labelsH125, modelType+" H125", doBlock=True)
+    plotDiscriminant(resultH125, labelsH125, modelType+" H125", doBlock=False)
 
     scores = np.concatenate((resultH125, resultZ90))
     labels_S = np.ones(len(resultH125))
@@ -149,9 +149,6 @@ def test():
          listOperations()
 
     fpr_training, tpr_training = testTheModel(sess, myDataManipulations, "training")
-
-    return#TEST
-
     fpr_fastMTT, tpr_fastMTT = testTheModel(sess, myDataManipulations, "fastMTT")
     fpr_caMass, tpr_caMass = testTheModel(sess, myDataManipulations, "caMass")
     #fpr_visMass, tpr_visMass = testTheModel(sess, myDataManipulations, "visMass")

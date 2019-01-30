@@ -75,7 +75,7 @@ class dataManipulations(InputWithDataset):
 
         #Select usefull mass range
         minMass = 50
-        maxMass = 250
+        maxMass = 150
         index = (features[:,0]>minMass)*(features[:,0]<maxMass)
         features = features[index]
     

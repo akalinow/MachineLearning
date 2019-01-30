@@ -161,7 +161,7 @@ class TrainFramework:
         self.initializeParser()
         self.parse_known_args()
 
-        self.printoutStep = int(self.FLAGS.max_epoch/100) + 1
+        self.printoutStep = int(self.FLAGS.max_epoch/50) + 1
 
         self.cleanDirectories()
                       
