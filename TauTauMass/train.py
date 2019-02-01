@@ -36,7 +36,7 @@ def main():
     ##List defining number of neurons in each layer including the input layer,
     ##BUT excluding the output layer
     #nNeurons = [numberOfFeatures, 128, 128, 128, 128, 128]
-    nNeurons = [numberOfFeatures, 23, 32, 32, 32, 32, 32, 32, 32, 32]
+    nNeurons = [numberOfFeatures, 128, 128, 128, 128, 128, 128, 128, 128]
     nOutputNeurons = FLAGS.nLabelBins
     
     myModel = Model(myFramework.aDataIterator,

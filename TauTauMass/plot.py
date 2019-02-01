@@ -57,21 +57,21 @@ def getModelResult(sess, myDataManipulations):
 ##############################################################################
 def getMassRange(sess, myDataManipulations, lowMass, highMass, modelType):
 
-    if modelType=="training":
-        stepSize = 1
+    if modelType=="training":        
         labels, features, result = getModelResult(sess, myDataManipulations)
-        labels *= stepSize
+        stepSize = 250/FLAGS.nLabelBins
         result *= stepSize
+        labels *= stepSize
     elif modelType=="fastMTT":
-        labels = myDataManipulations.labels
+        labels = myDataManipulations.labelsRaw
         result = myDataManipulations.fastMTT
         result = np.reshape(result, (-1,1))
     elif modelType=="caMass":
-        labels = myDataManipulations.labels
+        labels = myDataManipulations.labelsRaw
         result = myDataManipulations.caMass
         result = np.reshape(result, (-1,1))
     elif modelType=="visMass":
-        labels = myDataManipulations.labels
+        labels = myDataManipulations.labelsRaw
         result = myDataManipulations.visMass
         result = np.reshape(result, (-1,1))
 
@@ -147,10 +147,11 @@ def test():
     
     if FLAGS.debug>0:
          listOperations()
+         
 
     fpr_training, tpr_training = testTheModel(sess, myDataManipulations, "training")
     fpr_fastMTT, tpr_fastMTT = testTheModel(sess, myDataManipulations, "fastMTT")
-    fpr_caMass, tpr_caMass = testTheModel(sess, myDataManipulations, "caMass")
+    #fpr_caMass, tpr_caMass = testTheModel(sess, myDataManipulations, "caMass")
     #fpr_visMass, tpr_visMass = testTheModel(sess, myDataManipulations, "visMass")
 
     fig = plt.figure(10)
@@ -158,10 +159,10 @@ def test():
     #ax.plot([0, 1], [0, 1], 'k--')
     ax.plot(tpr_training, fpr_training, label='Training')
     ax.plot(tpr_fastMTT, fpr_fastMTT, label='fastMTT')
-    ax.plot(tpr_caMass, fpr_caMass, label='caMass')
+    #ax.plot(tpr_caMass, fpr_caMass, label='caMass')
     #ax.plot(tpr_visMass, fpr_visMass, label='visMass')
     ax.set_xlim(0.25,0.75)
-    ax.set_ylim(0.0,0.05)
+    ax.set_ylim(0.0,0.005)
     plt.xlabel('True positive rate')
     plt.ylabel('False positive rate')
     plt.title('ROC curve')

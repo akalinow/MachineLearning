@@ -164,7 +164,8 @@ class TrainFramework:
         self.printoutStep = int(self.FLAGS.max_epoch/50) + 1
 
         self.cleanDirectories()
-                      
+
+        #config=tf.ConfigProto(log_device_placement=True)
         self.mySess = tf.Session()
         print("Available computing devices:")
         devices = self.mySess.list_devices()

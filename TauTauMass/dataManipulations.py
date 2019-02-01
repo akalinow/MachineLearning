@@ -67,7 +67,7 @@ class dataManipulations(InputWithDataset):
 
         #leg2GenEnergy = leg2GenP4[:,0]
         #leg2GenEnergy = np.reshape(leg2GenEnergy, (-1,1))
-        features = np.hstack((genMass, fastMTT, caMass, visMass, leg1P4, leg2P4, met))
+        features = np.hstack((genMass, fastMTT, caMass, visMass, leg1P4, leg2P4, met, leg2Properties, visMass))
                
         #Select events with MET>10
         index = met[:,0]>10 
@@ -75,7 +75,7 @@ class dataManipulations(InputWithDataset):
 
         #Select usefull mass range
         minMass = 50
-        maxMass = 150
+        maxMass = 250
         index = (features[:,0]>minMass)*(features[:,0]<maxMass)
         features = features[index]
     
@@ -88,6 +88,12 @@ class dataManipulations(InputWithDataset):
         caMass = features[:,2]
         visMass = features[:,3]
         features = features[:,4:]
+
+        self.fastMTT = fastMTT
+        self.caMass = caMass
+        self.visMass = visMass
+        self.features = features
+        self.labelsRaw = np.reshape(labels, (-1,1))
         
         #Quantize the output variable into self.nLabelBins
         #or leave it as a floating point number
@@ -96,7 +102,7 @@ class dataManipulations(InputWithDataset):
             bins = np.append(bins,999)
             labels = pd.cut(labels, bins, labels=False)
 
-        labels = np.reshape(labels, (-1,1))
+        self.labels = np.reshape(labels, (-1,1))
        
         print("Input data shape:",features.shape)
         print("Label bins:",self.nLabelBins, "labels shape:",labels.shape)
@@ -105,13 +111,7 @@ class dataManipulations(InputWithDataset):
         self.numberOfFeatures = features.shape[1]
              
         assert features.shape[0] == labels.shape[0]
-
-        self.fastMTT = fastMTT
-        self.caMass = caMass
-        self.visMass = visMass
-        self.features = features
-        self.labels = labels
-
+       
 ##############################################################################
 ##############################################################################
 ##############################################################################
