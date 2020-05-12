@@ -57,9 +57,16 @@ def getModelResult(sess, myDataManipulations):
 ##############################################################################
 def getMassRange(sess, myDataManipulations, lowMass, highMass, modelType):
 
+    print("myDataManipulations.labelsRaw: ",myDataManipulations.labelsRaw)
+    
+    stepSize = 250/FLAGS.nLabelBins
+    if FLAGS.nLabelBins==1:
+        stepSize = 1
+
     if modelType=="training":        
         labels, features, result = getModelResult(sess, myDataManipulations)
-        stepSize = 250/FLAGS.nLabelBins
+        #fastMTT = myDataManipulations.fastMTT
+        #result *= fastMTT
         result *= stepSize
         labels *= stepSize
     elif modelType=="fastMTT":
@@ -85,7 +92,7 @@ def getMassRange(sess, myDataManipulations, lowMass, highMass, modelType):
 def testTheModel(sess, myDataManipulations, modelType):
 
     labelsZ90, resultZ90 = getMassRange(sess, myDataManipulations, 80, 100, modelType)
-    labelsH125, resultH125 = getMassRange(sess, myDataManipulations, 130, 140, modelType)
+    labelsH125, resultH125 = getMassRange(sess, myDataManipulations, 120, 130, modelType)
 
     pullZ90 = (resultZ90 - labelsZ90)/labelsZ90
     pullH125 = (resultH125 - labelsH125)/labelsH125
@@ -98,6 +105,9 @@ def testTheModel(sess, myDataManipulations, modelType):
           "mean pull:", np.mean(pullH125),
           "pull RMS:", np.std(pullH125, ddof=1))
 
+    resultZ90 = (resultZ90 - labelsZ90)/labelsZ90
+    resultH125 = (resultH125 - labelsH125)/labelsH125
+    
     plotDiscriminant(resultZ90, labelsZ90, modelType+" Z90", doBlock=False)
     plotDiscriminant(resultH125, labelsH125, modelType+" H125", doBlock=False)
 

@@ -25,3 +25,6 @@ Test on full simulation ggH125 events
 python plot.py --test_data_file data/htt_features_DY_ggH125.pkl --model_dir model/1/
 ```
 
+docker run -u $(id -u):$(id -g) -v ${PWD}:/tf/notebooks  -it -p 8888:8888 tensorflow/tensorflow:latest-py3-jupyter
+
+docker run -it  -v ${PWD}:/MachineLearning -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -u $(id -u):$(id -g) tensorflow/tensorflow:latest-py3-jupyter-deps-installed

@@ -35,9 +35,14 @@ def plotDiscriminant(modelResult, labels, plotTitle, doBlock=True):
     axis1.set_title("Pull")
     '''
 
+    xMin = 0
     xMax = 250
     nBins = (int)(xMax/5)
-    aHist = axis1.hist(modelResult, bins=nBins, range=(0,xMax))
+
+    xMin = -1
+    xMax = 1
+
+    aHist = axis1.hist(modelResult, bins=nBins, range=(xMin,xMax))
     #axis1.set_xlim((0, 250))
     axis1.set_xlabel("Prediction")
     axis1.set_title("")

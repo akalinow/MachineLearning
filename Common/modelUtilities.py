@@ -87,50 +87,11 @@ def saveTheModel(sess, flags):
                                outputs={"y": y})
     print("Model saved in file: %s" % flags.model_dir) 
 ##############################################################################
-##############################################################################
-def runTraining(sess, iEpoch, myWriter, flags, trainingMode=True):
-    
-    train_step = tf.get_default_graph().get_operation_by_name("model/train/Adam")
-    dropout_prob = tf.get_default_graph().get_operation_by_name("model/dropout_prob").outputs[0]
-    trainingModeFlag = tf.get_default_graph().get_operation_by_name("model/trainingMode").outputs[0]
-    mergedSummary = tf.get_default_graph().get_operation_by_name("model/monitor/Merge/MergeSummary").outputs[0]
-
-    ops = tf.get_collection("MY_UPDATE_OPS")
-    if trainingMode:
-        ops.insert(0, train_step)
-    ops.append(mergedSummary)
-
-    result = []
-    while True:
-        try:
-            result = sess.run(ops, feed_dict={dropout_prob: flags.dropout, trainingModeFlag: trainingMode})
-        except tf.errors.OutOfRangeError:
-            break
-        
-    if iEpoch%10==0:
-        print("Epoch:",iEpoch)
-        if trainingMode:
-            print("Training:")
-        else:
-            print("Validation:")
-
-        trainSummary = result[-1]
-        myWriter.add_summary(trainSummary, iEpoch)  
-    
-        ops = tf.get_collection("MY_RUNNING_VALS")
-        result = sess.run(ops)
-
-        for index, aOp in enumerate(ops):
-            print(aOp.name, result[index])
-##############################################################################
 ##############################################################################            
-
-
-
-
 def weight_variable(shape):
     """Create a weight variable with appropriate initialization."""
     numberOfInputs = shape[0]
+    print("numberOfInputs:",numberOfInputs, np.sqrt(2.0/numberOfInputs))
     initial = tf.random_uniform(shape)*np.sqrt(2.0/numberOfInputs)
     return tf.Variable(initial)
 ##############################################################################

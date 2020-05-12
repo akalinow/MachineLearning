@@ -67,7 +67,7 @@ class dataManipulations(InputWithDataset):
 
         #leg2GenEnergy = leg2GenP4[:,0]
         #leg2GenEnergy = np.reshape(leg2GenEnergy, (-1,1))
-        features = np.hstack((genMass, fastMTT, caMass, visMass, leg1P4, leg2P4, met, leg2Properties, visMass))
+        features = np.hstack((genMass, fastMTT, caMass, visMass, leg1P4, leg2P4, met))
                
         #Select events with MET>10
         index = met[:,0]>10 
@@ -87,14 +87,14 @@ class dataManipulations(InputWithDataset):
         fastMTT = features[:,1]
         caMass = features[:,2]
         visMass = features[:,3]
-        features = features[:,4:]
+        features = features[:,3:]
 
         self.fastMTT = fastMTT
         self.caMass = caMass
         self.visMass = visMass
         self.features = features
         self.labelsRaw = np.reshape(labels, (-1,1))
-        
+
         #Quantize the output variable into self.nLabelBins
         #or leave it as a floating point number
         if self.nLabelBins>1:
