@@ -2,10 +2,10 @@
 
 The training and validation data is a bare Pythia H->tau tau with H mass in range [50,300].
 The ROOT ntuples are created with [RootAnalysis/Pythia8Interface](https://github.com/akalinow/RootAnalysis/tree/devel_AK/HTauTau/Pythia8Interface)
-package.
+package, and processed with [RootAnalysis/SVFit](https://github.com/akalinow/RootAnalysis/tree/devel_AK/HTauTau/SVfit) package.
 
-The ROOT ntuples are tranformed then into TFDataFrame files (via pandas dataset) with
-[Data_preparation](Data_preparation.ipynb) notebook. The notebbok requires PyROOT and relevand packages.
+The ROOT ntuples are transformed then into Pandas DataFrame parquet files with
+[Data_preparation](Data_preparation.ipynb) notebook. The notebook requires PyROOT and relevand packages.
 This notebook can be run with a [akalinow/root-fedora31] (https://hub.docker.com/repository/docker/akalinow/root-fedora31] Docker container.
 
 The ML is made using the [Training_categorisation](Training_categorisation.ipynb) notebook. This notebook can be run with
