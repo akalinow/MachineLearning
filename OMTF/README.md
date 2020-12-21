@@ -14,7 +14,7 @@ classificator. **This package is an attempt to use NN for the same task**
 The ML is made using the [OMTF_NN](OMTF_NN.ipynb) notebook. This notebook can be run with
 a [akalinow/tensorflow-gpu](https://hub.docker.com/r/akalinow/tensorflow-gpu) Docker container.
 The training is run on Core i9-9900K CPU with NVIDIA GTX 2070 SUPER GPU. Please see the
-[model eveluation](OMTF_NN.ipynb#model_evaluation) notebook setcion for some example plots.
+notebook setcion for some example plots.
 
 **We are looking for students to continue and extend this study**
 If you are interested please contact [Artur.Kalinowsi@fuw.edu.pl](Artur.Kalinowski@fuw.edu.pl).
