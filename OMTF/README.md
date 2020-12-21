@@ -17,4 +17,4 @@ The training is run on Core i9-9900K CPU with NVIDIA GTX 2070 SUPER GPU. Please 
 notebook setcion for some example plots.
 
 **We are looking for students to continue and extend this study**
-If you are interested please contact [Artur.Kalinowsi@fuw.edu.pl](Artur.Kalinowski@fuw.edu.pl).
+If you are interested please contact [Artur.Kalinowski@fuw.edu.pl](Artur.Kalinowski@fuw.edu.pl).
