@@ -1,4 +1,4 @@
-## ML model for estimation ofthe muon transverse momentum in the CMS detector
+## ML model for estimation of the muon transverse momentum in the CMS detector
 
 This package is used fot training a deep NN for estimation of the momentum of muons in the
 [CMS](http://cms.cern) detector. The momentum is estimated at the so called
