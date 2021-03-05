@@ -123,8 +123,8 @@ def compareDYandH125(df):
           "pull RMS: {0:3.3f} RMS/125: {1:3.4f}".format(np.std(pull_NN_H125, ddof=1), np.std(pull_NN_H125, ddof=1)/125.0)
          )
      
-    minX = 0
-    maxX = 200
+    minX = 50
+    maxX = 250
     #maxY = 0.5*np.maximum(df_Z90., _H125.shape[0])
     nBins = 40
     fig, axes = plt.subplots(1, 3, figsize = (15, 5))  
@@ -170,7 +170,7 @@ def compareDYandH125(df):
             axes[2].annotate(np.round(txt,2), (x, y+0.04), color="blue")       
     
     axes[2].set_xlim(0.90,1.0)
-    #axes[2].set_ylim(0.0,1.0)
+    axes[2].set_ylim(0.0,1.0)
     axes[2].set_xlabel('True positive rate')
     axes[2].set_ylabel('False positive rate')
     axes[2].set_title('ROC curve')
@@ -180,3 +180,120 @@ def compareDYandH125(df):
     plt.savefig("fig_png/ROC.png", bbox_inches="tight")
 ###################################################
 ###################################################
+def plotPosterior(massGen, labels, predictions, indices):
+    
+    fig, axes = plt.subplots(1, 2, figsize = (10, 5))
+    #TEST indices = np.logical_and(labels>massGen-2, labels<massGen+2)
+    predictions = predictions[indices]
+    predictions = np.mean(predictions, axis=0)
+    maxPosterior = tf.math.reduce_max(predictions)
+    scaleFactor = int(0.8/maxPosterior + 0.5)
+    axes[0].plot(label2Mass(np.arange(predictions.shape[0])), scaleFactor*predictions, label="{}xposterior".format(scaleFactor))
+    axes[0].plot(label2Mass(np.arange(predictions.shape[0])), np.cumsum(predictions), linestyle='-.',label="cumulative posterior")
+    axes[0].axvline(massGen, linestyle='-', color="olivedrab", label=r'$m^{GEN} $')
+    axes[1].plot(label2Mass(np.arange(predictions.shape[0])), scaleFactor*predictions, label="{}xposterior".format(scaleFactor))
+ 
+    axes[0].set_xlabel(r'$m [GeV/c^{2}]$')
+    axes[0].set_ylabel('Value')
+    axes[0].set_xlim([0, 2*massGen])
+    axes[0].set_ylim([1E-3,1.05])    
+    axes[0].legend(bbox_to_anchor=(2.5,1), loc='upper left', title = r'$m^{GEN} = $'+str(massGen)+r'$~GeV/c^{2}$')
+    
+    axes[1].set_xlabel(r'$m~[GeV/c^{2}]$')
+    axes[1].set_ylabel('Value')
+    axes[1].set_xlim([0,300])
+    axes[1].set_ylim([1E-3,1.05])
+    plt.subplots_adjust(bottom=0.15, left=0.05, right=0.95, wspace=0.3)
+    plt.savefig("fig_png/Posterior_massGen_{}.png".format(massGen), bbox_inches="tight")
+###################################################
+###################################################
+def plotMET(smeared_met, original_met, covariance): 
+    
+  metX = smeared_met[:,0]
+  metY = smeared_met[:,1]
+  met = np.sqrt(metX**2 + metY**2)
+  
+  fig, axes = plt.subplots(2, 3, figsize = (10, 10))  
+    
+  metBins = tf.range(0.0,200,5) 
+  rangeX = (0, 100)
+  axes[0,0].hist(met, range=rangeX, bins = metBins, color="deepskyblue") 
+    
+  metBins = tf.range(-100.0,100,5) 
+  rangeX = (-100, 100)
+  axes[0,1].hist(metX, range=rangeX, bins = metBins, color="deepskyblue")  
+  axes[0,2].hist(metY, range=rangeX, bins = metBins, color="deepskyblue")   
+  axes[0,0].set_xlabel(r'$Total MET$')
+  axes[0,1].set_xlabel(r'$MET_{x}$') 
+  axes[0,2].set_xlabel(r'$MET_{y}$') 
+   
+  sns.heatmap(covariance, ax=axes[1,0], annot=True) 
+  axes[1,0].set_title(r'$MET covariance$')
+  axes[1,0].set_xticklabels([r'$MET_{x}$', r'$MET_{y}$'])
+  axes[1,0].set_yticklabels([r'$MET_{x}$', r'$MET_{y}$']) 
+        
+  x, y = np.mgrid[-50:50:5, -50:50:5]
+  x_y = np.dstack((x, y))
+  gauss2D = scipy.stats.multivariate_normal(mean=[0,0], cov=covariance)
+  colorScale = axes[1,2].contourf(x, y, gauss2D.pdf(x_y))  
+  fig.colorbar(colorScale, ax=axes[1,2])
+  axes[1,2].scatter(metX-original_met[0], metY-original_met[1], facecolor='red')
+  '''  
+  for count, item in enumerate(zip(metX, metY)):
+            axes[1,2].annotate(count, (item[0], item[1]), color="brown")
+  '''  
+  axes[1,2].set_xlabel(r'$(MET^{smear} - MET^{gen})_{x}$') 
+  axes[1,2].set_ylabel(r'$(MET^{smear} - MET^{gen})_{y}$') 
+  axes[1,2].set_xlim([-50,50])
+  axes[1,2].set_ylim([-50,50]) 
+  axes[1,1].set_axis_off()
+
+  plt.subplots_adjust(bottom=0.15, left=0.05, right=0.95, wspace=0.25, hspace=0.4)
+  plt.savefig("fig_png/smeared_MET.png", bbox_inches="tight") 
+###################################################
+from matplotlib import ticker, cm, colors
+from matplotlib.colors import ListedColormap 
+###################################################   
+def pullNN_vs_MET(df, met_tf_weights):
+            
+    pull = (df["NN"] - df["genMass"])/df["genMass"]
+  
+    colormap = plt.get_cmap("RdYlBu")
+    newcolors = colormap(np.linspace(0, 1, 256))
+    newcolors[128-10:128+10, :] = np.array([0, 0, 0, 1])
+    my_colormap = ListedColormap(newcolors)
+    
+    fig, axes = plt.subplots(2, 2, figsize = (12, 12))  
+    
+    norm = colors.Normalize(vmin=-1.,vmax=1., clip=True)
+    sc = axes[0,0].scatter(df["metX"], df["metY"], c=pull, norm=norm, cmap=my_colormap)
+    axes[0,0].set_xlabel(r'$MET_{x}$') 
+    axes[0,0].set_ylabel(r'$MET_{y}$') 
+    cbar = fig.colorbar(sc, ax=axes[0,0])
+    cbar.set_label("pull", loc='top')
+    
+    colormap = plt.get_cmap("RdYlBu")
+    newcolors = colormap(np.linspace(0, 1, 256))
+    newcolors[240:, :] = np.array([0, 0, 0, 1])
+    my_colormap = ListedColormap(newcolors)
+    
+    norm = colors.Normalize(vmin=0.0001,vmax=np.amax(met_tf_weights), clip=True)
+    sc = axes[0,1].scatter(df["metX"], df["metY"], c=met_tf_weights, norm=norm, cmap=my_colormap)
+    axes[0,1].set_xlabel(r'$MET_{x}$') 
+    axes[0,1].set_ylabel(r'$MET_{y}$') 
+    cbar = fig.colorbar(sc, ax=axes[0,1])
+    cbar.set_label("MET TF weight", loc='top')
+    
+    axes[1,0].scatter(df["metX"], pull)
+    axes[1,0].set_xlabel(r'$MET_{x}$') 
+    axes[1,0].set_ylabel(r'pull') 
+    
+    axes[1,1].scatter(df["metY"], pull)
+    axes[1,1].set_xlabel(r'$MET_{y}$') 
+    axes[1,0].set_ylabel(r'pull') 
+    
+    plt.subplots_adjust(bottom=0.15, left=0.05, right=0.95, wspace=0.25, hspace=0.4)
+    plt.savefig("fig_png/pull_vs_MET.png", bbox_inches="tight") 
+        
+###################################################
+###################################################       
