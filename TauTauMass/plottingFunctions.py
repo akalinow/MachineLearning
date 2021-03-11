@@ -253,7 +253,56 @@ def plotMET(smeared_met, original_met, covariance):
 ###################################################
 from matplotlib import ticker, cm, colors
 from matplotlib.colors import ListedColormap 
+################################################### 
 ###################################################   
+def probNN_vs_MET(df, met_tf_weights):
+               
+    colormap = plt.get_cmap("RdYlBu")
+    newcolors = colormap(np.linspace(0, 1, 20))
+    newcolors[18:, :] = np.array([0, 0, 0, 1])
+    my_colormap = ListedColormap(newcolors)
+    
+    fig, axes = plt.subplots(2, 2, figsize = (12, 12))  
+    
+    norm = colors.Normalize(vmin=0.,vmax=1., clip=True)
+    prob = df["NN"]
+    sc = axes[0,0].scatter(df["metX"], df["metY"], c=prob, norm=norm, cmap=my_colormap)
+    axes[0,0].set_xlabel(r'$MET_{x}$') 
+    axes[0,0].set_ylabel(r'$MET_{y}$') 
+    cbar = fig.colorbar(sc, ax=axes[0,0])
+    cbar.set_label(r'$p(m_{H}|MET)")$', loc='top')
+    
+    colormap = plt.get_cmap("RdYlBu")
+    newcolors = colormap(np.linspace(0, 1, 20))
+    newcolors[18:, :] = np.array([0, 0, 0, 1])
+    my_colormap = ListedColormap(newcolors)
+    
+    norm = colors.Normalize(vmin=0.0001,vmax=np.amax(met_tf_weights), clip=True)
+    sc = axes[0,1].scatter(df["metX"], df["metY"], c=met_tf_weights, norm=norm, cmap=my_colormap)
+    axes[0,1].set_xlabel(r'$MET_{x}$') 
+    axes[0,1].set_ylabel(r'$MET_{y}$') 
+    cbar = fig.colorbar(sc, ax=axes[0,1])
+    cbar.set_label("MET TF weight", loc='top')
+    
+    axes[1,0].scatter(df["metX"], prob)
+    axes[1,0].set_xlabel(r'$MET_{x}$') 
+    axes[1,0].set_ylabel(r'$p(m_{H}|MET)")$') 
+    
+    axes[1,1].scatter(df["metY"], prob)
+    axes[1,1].set_xlabel(r'$MET_{y}$') 
+    axes[1,0].set_ylabel(r'$p(m_{H}|MET)")$') 
+    
+    plt.subplots_adjust(bottom=0.15, left=0.05, right=0.95, wspace=0.25, hspace=0.45)
+    plt.savefig("fig_png/prob_vs_MET.png", bbox_inches="tight") 
+        
+###################################################
+###################################################
+
+
+
+
+
+
 def pullNN_vs_MET(df, met_tf_weights):
             
     pull = (df["NN"] - df["genMass"])/df["genMass"]
