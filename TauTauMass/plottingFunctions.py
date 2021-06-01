@@ -264,8 +264,8 @@ def probNN_vs_MET(df, met_tf_weights):
     
     fig, axes = plt.subplots(2, 2, figsize = (12, 12))  
     
-    norm = colors.Normalize(vmin=0.,vmax=1., clip=True)
     prob = df["NN"]
+    norm = colors.Normalize(vmin=0.,vmax=np.amax(prob), clip=True)
     sc = axes[0,0].scatter(df["metX"], df["metY"], c=prob, norm=norm, cmap=my_colormap)
     axes[0,0].set_xlabel(r'$MET_{x}$') 
     axes[0,0].set_ylabel(r'$MET_{y}$') 
@@ -297,12 +297,6 @@ def probNN_vs_MET(df, met_tf_weights):
         
 ###################################################
 ###################################################
-
-
-
-
-
-
 def pullNN_vs_MET(df, met_tf_weights):
             
     pull = (df["NN"] - df["genMass"])/df["genMass"]
