@@ -1,0 +1,64 @@
+Instrukcje pracy z pakietem Tensor Flow na klastrze Prometheus.
+
+#Logowanie na maszynę dostępową do klastra.
+
+ssh login@prometheus.cyfronet.pl
+
+#Ustawienie ścieżek do bibliotek CUDAnn i załadowanie modułów aplikacji zainstalowanych centralnie na klastrze
+Najlepiej dopisać je do pliku .bashrc
+
+#TF 1.10
+module load plgrid/libs/tensorflow-gpu/1.10.0-python-3.6
+module load plgrid/libs/python-numpy/1.14.2-python-3.6
+export LD_LIBRARY_PATH=$PLG_GROUPS_STORAGE/plggcmsml/NVIDIA/cudnn-10.0-linux-x64-v7.3.1.20/lib64:$LD_LIBRARY_PATH
+
+#TF 2.0
+module load plgrid/libs/python-numpy/1.14.2-python-3.6
+module load plgrid/libs/tensorflow-gpu/2.0.0-python-3.6
+export LD_LIBRARY_PATH=$PLG_GROUPS_STORAGE/plggcmsml/NVIDIA/cudnn-9.0-linux-x64-v7.3.0.29/lib64:$LD_LIBRARY_PATH
+
+#Uruchomienie interaktywnej sesji na wężle obliczeniowym wyposarzonym w GPU na okres 20 minut.
+#Po uruchomieniu znajdziemy się na wężle obliczeniowych (zwrócić uwagę na nawzę w znaku zachęty (prompt)
+#UWAGA: na maszynie dostępowej TF nie zadziała z powodu braku bibliotek CUDA.
+srun -p plgrid-gpu --gres=gpu -t 20:00 --pty /bin/bash
+
+[prometheus][plgakalinow@p2147 scratch]$
+
+
+#Test podstawowego działania TF
+python3 -c "import tensorflow as tf;print(tf.reduce_sum(tf.random_normal([1000, 1000])))"
+
+#W kolejce interaktywnej można prowadzić krótkie testy kodu
+#do uruchamiania dlugich zadań należy użyć zwykłej kolejki.
+# Wychodzimy z kolejki interaktywnej
+
+[prometheus][plgakalinow@p2147 scratch]$ exit
+[prometheus][plgakalinow@login01 scratch]$
+
+#Tworzymy skrypt zawierający zadanie obliczeniowe gpu_job.sh:
+---
+#!/bin/bash
+#SBATCH -p plgrid-gpu
+#SBATCH -N 1
+#SBATCH --ntasks-per-node=1
+#SBATCH --job-name=test
+#SBATCH --output=test.txt
+#SBATCH --gres=gpu
+
+#The actual task
+python3 -c "import tensorflow as tf;print(tf.reduce_sum(tf.random_normal([1000, 1000])))"
+---
+
+#Wysyłamy zadanie obliczeniowe
+sbatch gpu_job.sh
+
+#Monitorujemy stan zadania
+squeue
+
+#Wynik zadania pojawi się w pliku slurm-*.out
+[prometheus][plgakalinow@login01 scratch]$ more slurm-17968874.out
+
+
+
+
+
