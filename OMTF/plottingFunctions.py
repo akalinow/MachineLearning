@@ -21,7 +21,6 @@ params = {'legend.fontsize': 'xx-large',
 plt.rcParams.update(params)
 ###################################################
 ###################################################
-cumulativePosteriorCut = 0.70
 testIndex = 0
 ###################################################
 ###################################################
@@ -78,14 +77,14 @@ def plotTurnOn(df, ptCut):
     ratio_NN = np.divide(numerator_NN, denominator, out=np.zeros(denominator.shape), where=denominator>0)
     
     fig, axes = plt.subplots(1, 3)
-    axes[0].plot(ptHistoBins[:-1],numerator_OMTF, label="OMTF")
-    axes[0].plot(ptHistoBins[:-1],numerator_NN, label="NN")
+    axes[0].plot(ptHistoBins[:-1],numerator_OMTF, label="OMTF",linewidth=2)
+    axes[0].plot(ptHistoBins[:-1],numerator_NN, label="NN", linewidth=2)
     axes[0].set_xlim([0,2.0*ptCut])
     axes[0].set_xlabel(r'$p_{T}^{GEN}$')
     axes[0].set_ylabel('Events passing pT cut')
     axes[0].legend(loc='upper left')
     
-    axes[1].plot(ptHistoBins[:-1],ratio_OMTF, label="OMTF")
+    axes[1].plot(ptHistoBins[:-1],ratio_OMTF, label="OMTF", linewidth=2)
     axes[1].plot(ptHistoBins[:-1],ratio_NN, label="NN")
     axes[1].grid()
     axes[1].set_yscale("log")
@@ -177,6 +176,60 @@ def plotCM(df, pT2Label):
     plt.savefig("fig_png/CM.png", bbox_inches="tight")
 ###################################################
 ###################################################
-
+def getVxMuRate(x):
+    
+    params = np.array([-0.235801, -2.82346, 17.162])
+    integratedRate = np.power(x,params[0]*np.log(x) + params[1])*np.exp(params[2])  
+    differentialRate = -np.power(x,params[0]*np.log(x) + params[1] -1)*np.exp(params[2])*(2*params[0]*np.log(x)+params[1])
+    
+    return differentialRate
+###################################################
+###################################################
+def getVsMuRateWeight(x, hist, bins):
+       
+    weightToFlatSpectrum = np.divide(1.0, hist, out=np.zeros(hist.shape), where=hist>0)  
+    binNumber = np.digitize(x,bins) -1  
+    weight = getVxMuRate(x)*weightToFlatSpectrum[binNumber]    
+    return weight
+###################################################
+###################################################
+def plotRate(df):
+        
+    ptHistoBins = np.concatenate((np.arange(2,201,1), [9999]))  
+    genPtHist, bin_edges = np.histogram(df["genPt"], bins=ptHistoBins) 
+    weights = getVsMuRateWeight(df["genPt"], genPtHist, bin_edges)
+       
+    genPtHist_weight, bin_edges = np.histogram(df["genPt"], bins=ptHistoBins, weights=weights) 
+    genPtHist_weight = np.sum(genPtHist_weight) - np.cumsum(genPtHist_weight)
+    
+    omtfPtHist_weight, bin_edges = np.histogram(df["OMTF_pt"], bins=ptHistoBins, weights=weights) 
+    omtfPtHist_weight = np.sum(omtfPtHist_weight) - np.cumsum(omtfPtHist_weight)
+    
+    nnPtHist_weight, bin_edges = np.histogram(df["NN_pt"], bins=ptHistoBins, weights=weights) 
+    nnPtHist_weight = np.sum(nnPtHist_weight) - np.cumsum(nnPtHist_weight)
+        
+    fig, axes = plt.subplots(2, 1, sharex=True)
+    fig.subplots_adjust(hspace=0)
+    axes[0].step(ptHistoBins[:-1], genPtHist_weight, label="Vxmurate", linewidth=3, color="black", where='post')
+    axes[0].step(ptHistoBins[:-1], omtfPtHist_weight, label="OMTF", linewidth=3, color="blue", where='post')
+    axes[0].step(ptHistoBins[:-1], nnPtHist_weight, label="NN", linewidth=3, color="red", where='post')
+    axes[0].set_xlim([30,60])
+    axes[0].set_ylim([10,1E6])
+    axes[0].set_ylabel('Rate [arb. units]')
+    axes[0].legend(loc='upper right')
+    axes[0].grid()
+    axes[0].set_yscale("log")
+      
+    ratio = np.divide(omtfPtHist_weight, nnPtHist_weight, out=np.zeros_like(nnPtHist_weight), where=nnPtHist_weight>0)  
+    axes[1].step(ptHistoBins[:-1], ratio, label="OMTF/NN", linewidth=3, color="black", where='post')
+    axes[1].set_xlim([30,60])
+    axes[1].set_ylim([0.5,2])
+    axes[1].set_xlabel(r'$p_{T}^{cut}$')
+    axes[1].set_ylabel('Rate atio')
+    axes[1].legend(loc='upper right')
+    axes[1].grid()
+    
+    #plt.subplots_adjust(bottom=0.15, left=0.05, right=0.95, wspace=0.5)
+    plt.savefig("fig_png/Rate.png", bbox_inches="tight")
 ###################################################
 ###################################################
