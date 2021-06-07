@@ -135,11 +135,19 @@ def plotSingleCM(gen_labels, model_labels, modelName, palette, annot, axis):
     cm = tf.math.divide_no_nan(cm, tf.math.reduce_sum(cm, axis=1)[:, np.newaxis])
     cm = tf.transpose(cm)
     
-    sns.heatmap(cm, ax = axis, vmax = vmax, annot=annot, xticklabels=5, yticklabels=5, cmap=palette)
-    axis.set_title(modelName)
-    axis.set_ylabel(r'$p_{T}^{REC} \rm{[bin ~number]}$');
-    axis.set_xlabel(r'$p_{T}^{GEN} \rm{[bin ~number]}$');
-    axis.grid()
+    if cm.shape[0]==2:
+        vmax = 1.0
+        sns.heatmap(cm, ax = axis, vmax = vmax, annot=annot, xticklabels=("-1", "1"), yticklabels=("-1", "1"), cmap=palette)
+        axis.set_ylabel(r'$q^{REC}$')
+        axis.set_xlabel(r'$q^{GEN}$')
+    else:
+        vmax = 1.0
+        sns.heatmap(cm, ax = axis, vmax = vmax, annot=annot, xticklabels=5, yticklabels=5, cmap=palette)
+        axis.set_ylabel(r'$p_{T}^{REC} \rm{[bin ~number]}$')
+        axis.set_xlabel(r'$p_{T}^{GEN} \rm{[bin ~number]}$')
+        axis.grid()
+        
+    axis.set_title(modelName)   
     
     max_label = np.amax([gen_labels,model_labels])+1
     axis.set_ylim([0,max_label])
@@ -194,6 +202,8 @@ def getVsMuRateWeight(x, hist, bins):
 ###################################################
 ###################################################
 def plotRate(df):
+    
+    from matplotlib.gridspec import GridSpec
         
     ptHistoBins = np.concatenate((np.arange(2,201,1), [9999]))  
     genPtHist, bin_edges = np.histogram(df["genPt"], bins=ptHistoBins) 
@@ -208,12 +218,19 @@ def plotRate(df):
     nnPtHist_weight, bin_edges = np.histogram(df["NN_pt"], bins=ptHistoBins, weights=weights) 
     nnPtHist_weight = np.sum(nnPtHist_weight) - np.cumsum(nnPtHist_weight)
         
-    fig, axes = plt.subplots(2, 1, sharex=True)
-    fig.subplots_adjust(hspace=0)
+    #fig, axes = plt.subplots(2, 1, sharex=True)
+    #fig.subplots_adjust(hspace=0.1)
+    
+    fig = plt.figure()
+    gs = GridSpec(6, 6, figure=fig)
+    axes = [0,0]
+    axes[0] = fig.add_subplot(gs[0:4, :])
+    axes[1] = fig.add_subplot(gs[5:, :])
+    
     axes[0].step(ptHistoBins[:-1], genPtHist_weight, label="Vxmurate", linewidth=3, color="black", where='post')
     axes[0].step(ptHistoBins[:-1], omtfPtHist_weight, label="OMTF", linewidth=3, color="blue", where='post')
     axes[0].step(ptHistoBins[:-1], nnPtHist_weight, label="NN", linewidth=3, color="red", where='post')
-    axes[0].set_xlim([30,60])
+    axes[0].set_xlim([2,60])
     axes[0].set_ylim([10,1E6])
     axes[0].set_ylabel('Rate [arb. units]')
     axes[0].legend(loc='upper right')
@@ -222,11 +239,11 @@ def plotRate(df):
       
     ratio = np.divide(omtfPtHist_weight, nnPtHist_weight, out=np.zeros_like(nnPtHist_weight), where=nnPtHist_weight>0)  
     axes[1].step(ptHistoBins[:-1], ratio, label="OMTF/NN", linewidth=3, color="black", where='post')
-    axes[1].set_xlim([30,60])
-    axes[1].set_ylim([0.5,2])
+    axes[1].set_xlim([2,60])
+    axes[1].set_ylim([0.9,2.1])
     axes[1].set_xlabel(r'$p_{T}^{cut}$')
-    axes[1].set_ylabel('Rate atio')
-    axes[1].legend(loc='upper right')
+    axes[1].set_ylabel('OMTF/NN')
+    #axes[1].legend(loc='upper right')
     axes[1].grid()
     
     #plt.subplots_adjust(bottom=0.15, left=0.05, right=0.95, wspace=0.5)
