@@ -65,7 +65,7 @@ def plotPosterior(ptGen, labels, predictions, label2Pt):
 ###################################################    
 def plotTurnOn(df, ptCut):
     
-    ptMax = ptCut+50
+    ptMax = ptCut+10
     nPtBins = int(ptMax*2.0)
     ptHistoBins = range(0,nPtBins+1)
     
