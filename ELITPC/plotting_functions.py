@@ -10,19 +10,21 @@ def get_ROI_bb(roi):
     sx, sy = roi['slice'] #Use transosed coordinates for plotting
     #print("ROI: ({},{}) - ({},{})".format(sx.start,sy.start, sx.stop,sy.stop))
         
-    scalex = 1.0/511
-    scaley = 1.0/(92+36)
+    scalex = 1.0/512
+    scaley = 1.0/92
         
     width = (sx.stop-sx.start)*scalex
     height = (sy.stop-sy.start)*scaley
     (startx,starty) = (sx.start*scalex,sy.start*scaley)
     
     return Rectangle((startx,starty), width, height,
-                    linewidth=3, edgecolor='r',facecolor='none') 
+                    linewidth=1, edgecolor='red',facecolor='none') 
 #####################################################
 #####################################################
 def plotOriginal_vs_cropped(data, cropped, mask, roi):
     
+    if roi == None:
+        return
     bb = get_ROI_bb(roi)
     
     projection = 0
@@ -116,15 +118,24 @@ def plot_latent_space(vae, n=30, figsize=15):
 #####################################################
 def plotLoss(data):
     
-    fig, axes = plt.subplots(1, 2, figsize = (10, 5))
+    fig, axes = plt.subplots(1, 4, figsize = (15, 5))
 
-    data.plot.hist("loss", bins=20, ax=axes[0])
-    axes[0].set_ylabel('Frequency')
+    data.hist("binary_loss", bins=20, ax=axes[0])
+    axes[0].set_ylabel('Number of events')
     axes[0].set_xlabel('Reconstruction loss')
 
-    data.plot.hist("loss", bins=20, ax=axes[1])
+    data.hist("binary_loss", bins=20, ax=axes[1])
     axes[1].set_ylabel('Number of events')
     axes[1].set_xlabel('Reconstruction loss')
     axes[1].set_yscale("log")
+    
+    data.hist("mae_loss", bins=20, ax=axes[2])
+    axes[2].set_ylabel('Number of events')
+    axes[2].set_xlabel('Reconstruction loss')
+
+    data.hist("mae_loss", bins=20, ax=axes[3])
+    axes[3].set_ylabel('Number of events')
+    axes[3].set_xlabel('Reconstruction loss')
+    axes[3].set_yscale("log")
 #####################################################
 #####################################################   
