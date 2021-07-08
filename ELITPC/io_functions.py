@@ -34,13 +34,13 @@ def preprocessProjections(item, projection=0):
 ################################################
 def find_ROIs(data, threshold_abs=0.2, min_distance=0, roi_size_thr=10):
     
-    #data = data[:,:,0]
-    data = np.reshape(data, (512,92))
+    data = np.reshape(data, featuresShape[0:2])
     data = feature.peak_local_max(data, min_distance=min_distance, indices=False, threshold_abs=threshold_abs)
     
     s = ndimage.generate_binary_structure(2,3)
     x = tf.math.greater(data, tf.constant(threshold_abs))
     x = ndimage.binary_fill_holes(x)
+    #x = ndimage.binary_dilation(x, iterations=3)
     #x = ndimage.binary_opening(x, structure=s)
     #x = ndimage.grey_opening(x, structure=s)
     labels, nl = ndimage.label(x,structure=s)
@@ -90,8 +90,8 @@ def generateCircle(center_x, center_y):
 ################################################
 def generateEllipse():    
     center_x, center_y = tf.random.uniform(shape=[2], minval=32-10, maxval=32+10)
-    minorAxis =  tf.random.uniform(shape=[1], minval=2, maxval=5)
-    majorAxis =  tf.random.uniform(shape=[1], minval=5, maxval=64)
+    minorAxis =  tf.random.uniform(shape=[1], minval=1, maxval=5)
+    majorAxis =  tf.random.uniform(shape=[1], minval=5, maxval=40)
     phi = tf.random.uniform(shape=[1], minval=0, maxval=np.pi)
     rr, cc = skimage.draw.ellipse(r=center_x, c=center_y, r_radius=minorAxis[0], c_radius=majorAxis[0], shape=crop_shape, rotation=phi[0])
     ellipse = np.zeros(crop_shape, dtype=np.uint8)
@@ -111,7 +111,7 @@ def generateLine():
     tanPhi = tf.tan(phi)
     center_x, center_y = tf.random.uniform(shape=[2], minval=32-10, maxval=32+10)
     lenght = tf.random.uniform(shape=[1], minval=5, maxval=40)
-    width = tf.random.uniform(shape=[1], minval=10, maxval=15)
+    width = tf.random.uniform(shape=[1], minval=1, maxval=5)
     circle_equation = tf.sqrt((xx - center_x) ** 2 + (yy - center_y) ** 2)
     line_equation = (yy-center_y) - tanPhi*(xx-center_x)
     rectangle = tf.math.logical_and(tf.abs(line_equation)<width, circle_equation<lenght)
@@ -124,7 +124,7 @@ def generateEmpty(center_x, center_y):
 def shapes_images_generator():
     for number in range(0,32000):
         aRandom = tf.random.uniform(shape=[1], minval=0, maxval=1)    
-        image = generateLine()
+        #image = generateLine()
         image = generateEllipse()
         yield image
 ################################################ 
@@ -140,4 +140,6 @@ def loadEncoderDecoder(tag):
     checkpoint_path = "training/decoder_"+tag
     decoder = tf.keras.models.load_model(filepath=checkpoint_path)
     return encoder, decoder
+################################################
+
 ################################################

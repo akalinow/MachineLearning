@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -54,7 +55,7 @@ def plotOriginal_vs_cropped(data, cropped, mask, roi):
     fig.colorbar(im1, cax=cax)
 #####################################################
 #####################################################
-def plotOriginal_vs_decoded(data, vae):
+def plotOriginal_vs_decoded(data, vae, threshold):
     
     batchElement = 0
     projection = 0
@@ -62,6 +63,7 @@ def plotOriginal_vs_decoded(data, vae):
     z_mean, z_log_var, z = vae.encoder.predict(data)
     decoded_data = vae.decoder.predict(z_mean)  
     decoded_data = tf.cast(decoded_data[batchElement],tf.float32)
+    decoded_data = tf.greater(decoded_data, tf.constant(threshold))
     data = tf.cast(data[batchElement],tf.float32)
     
     fig, ax = plt.subplots(1,2, figsize=(20,8))
@@ -138,4 +140,19 @@ def plotLoss(data):
     axes[3].set_xlabel('Reconstruction loss')
     axes[3].set_yscale("log")
 #####################################################
-#####################################################   
+#####################################################
+def plot_latent_space(data):
+ 
+    data.hist(bins=20, color='steelblue', edgecolor='black', linewidth=1.0,
+           xlabelsize=8, ylabelsize=8, grid=False)
+    plt.tight_layout(rect=(0, 0, 2, 2))
+    
+    f, ax = plt.subplots(figsize=(10, 6))
+    corr = data.corr()
+    hm = sns.heatmap(round(corr,2), annot=True, ax=ax, cmap="coolwarm",fmt='.2f',
+                 linewidths=.05)
+    f.subplots_adjust(top=0.93)
+    t= f.suptitle('Correlation Heatmap', fontsize=14)
+#####################################################
+#####################################################
+   
