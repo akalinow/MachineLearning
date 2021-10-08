@@ -64,22 +64,40 @@ def plotOriginal_vs_decoded(data, vae, threshold):
     decoded_data = vae.decoder.predict(z_mean)  
     decoded_data = tf.cast(decoded_data[batchElement],tf.float32)
     decoded_data = tf.greater(decoded_data, tf.constant(threshold))
+    decoded_data = tf.cast(decoded_data,tf.float32)
     data = tf.cast(data[batchElement],tf.float32)
-    
-    fig, ax = plt.subplots(1,2, figsize=(20,8))
+        
+    fig, ax = plt.subplots(1,4, figsize=(28,7))
     #imageRange = [0,511, 0,91]  
     imageRange = [0,1, 0,1]  
     im0 = ax[0].imshow(np.transpose(data[:,:,projection]) ,extent=imageRange, origin='lower')
-    im1 = ax[1].imshow(np.transpose(decoded_data[:,:,projection]) ,extent=imageRange, origin='lower') 
+    im1 = ax[1].imshow(np.transpose(decoded_data[:,:,projection]) ,extent=imageRange, origin='lower')
+    
+    data_tmp = data*(1-decoded_data)
+    im1 = ax[2].imshow(np.transpose(data_tmp[:,:,projection]) ,extent=imageRange, origin='lower')
+    
+    decoded_data_tmp = decoded_data*(1-data)
+    im1 = ax[3].imshow(np.transpose(decoded_data_tmp[:,:,projection]) ,extent=imageRange, origin='lower')
+    
     
     ax[0].set_title('original', fontsize = 15)
-    ax[1].set_title('decoded, z = {}'.format(z_mean), fontsize = 15)  
+    ax[1].set_title('decoded, z = {}'.format(z_mean), fontsize = 15) 
+    ax[2].set_title('original outside decoded', fontsize = 15)
+    ax[3].set_title('decoded outside original', fontsize = 15)
     
     divider = make_axes_locatable(ax[0])
     cax = divider.append_axes("right", size="5%", pad=0.4)
     fig.colorbar(im0, cax=cax)
     
     divider = make_axes_locatable(ax[1])
+    cax = divider.append_axes("right", size="5%", pad=0.4)
+    fig.colorbar(im1, cax=cax)
+    
+    divider = make_axes_locatable(ax[2])
+    cax = divider.append_axes("right", size="5%", pad=0.4)
+    fig.colorbar(im1, cax=cax)
+    
+    divider = make_axes_locatable(ax[3])
     cax = divider.append_axes("right", size="5%", pad=0.4)
     fig.colorbar(im1, cax=cax)
 #####################################################
@@ -120,7 +138,7 @@ def plot_latent_space(vae, n=30, figsize=15):
 #####################################################
 def plotLoss(data):
     
-    fig, axes = plt.subplots(1, 4, figsize = (15, 5))
+    fig, axes = plt.subplots(1, 6, figsize = (25, 5))
 
     data.hist("binary_loss", bins=20, ax=axes[0])
     axes[0].set_ylabel('Number of events')
@@ -139,6 +157,15 @@ def plotLoss(data):
     axes[3].set_ylabel('Number of events')
     axes[3].set_xlabel('Reconstruction loss')
     axes[3].set_yscale("log")
+    
+    data.hist("stick_out_loss", bins=20, ax=axes[4])
+    axes[4].set_ylabel('Number of events')
+    axes[4].set_xlabel('Reconstruction loss')
+
+    data.hist("stick_out_loss", bins=20, ax=axes[5])
+    axes[5].set_ylabel('Number of events')
+    axes[5].set_xlabel('Reconstruction loss')
+    axes[5].set_yscale("log")
 #####################################################
 #####################################################
 def plot_latent_space(data):

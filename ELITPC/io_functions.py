@@ -1,13 +1,17 @@
 import tensorflow as tf
+import tensorflow_addons as tfa
 import numpy as np
 from scipy import ndimage
 import skimage
 from skimage import feature
 from skimage.draw import ellipse
+
+from skimage.restoration import denoise_nl_means, estimate_sigma
+from skimage import img_as_float
 ################################################
 ################################################
 featuresShape = (512, 92, 3)
-crop_shape = (64, 64, 1)
+crop_shape = (128, 128, 1)
 labelsShape = (2,)
 ################################################
 ################################################
@@ -32,9 +36,27 @@ def preprocessProjections(item, projection=0):
     return x
 ################################################
 ################################################
+def denoise_and_mask(data):
+    
+    noisy = img_as_float(data)
+    patch_kw = dict(patch_size=5,  # 5x5 patches
+                patch_distance=6,  # 13x13 search area
+                )
+    # slow algorithm
+    data = denoise_nl_means(noisy, fast_mode=False,
+                               **patch_kw)
+    threshold = 0.1
+    mask = tf.greater(data, tf.constant(threshold))
+    mask = tf.cast(mask,tf.float32)
+    
+    return mask
+################################################
+################################################
 def find_ROIs(data, threshold_abs=0.2, min_distance=0, roi_size_thr=10):
     
-    data = np.reshape(data, featuresShape[0:2])
+    data = denoise_and_mask(data)
+    
+    data = np.reshape(data, featuresShape[0:2]) 
     data = feature.peak_local_max(data, min_distance=min_distance, indices=False, threshold_abs=threshold_abs)
     
     s = ndimage.generate_binary_structure(2,3)
@@ -61,23 +83,31 @@ def find_ROIs(data, threshold_abs=0.2, min_distance=0, roi_size_thr=10):
 def crop_ROI(data, roi, shape):
 
     if roi==None:
-        return np.zeros(crop_shape), np.zeros(crop_shape)
+        return np.zeros(crop_shape), np.zeros(crop_shape), np.zeros(2)
     row, column = roi['slice']
     mask = roi['mask']
-    #print("ROI (x,y): ({},{}) - ({},{})".format(column.start,column.start, row.stop,row.stop))
+    #print("ROI (x,y): ({},{}) - ({},{})".format(column.start,column.stop, row.stop,row.stop))
     loc = roi['slice'] + (slice(0,1),)
     
     mask = tf.reshape(mask, mask.shape+(1,))
     cropped = data[loc]
     cropped = tf.image.resize_with_crop_or_pad(cropped, shape[0], shape[1])
     mask = tf.image.resize_with_crop_or_pad(mask, shape[0], shape[1])
-    return cropped, mask
+      
+    roi_centroid_col = column.start + tf.math.reduce_mean(tf.math.reduce_sum(cropped, axis=1))
+    roi_centroid_row = row.start + tf.math.reduce_mean(tf.math.reduce_sum(cropped, axis=0))
+    roi_centroid = (roi_centroid_row, roi_centroid_col)
+    
+    return cropped, mask, roi_centroid
 ################################################
 ################################################
 def cropped_images_generator(dataset, **params):
-    for data in dataset:    
+    for data in dataset:  
+        
+        data = denoise_and_mask(data) #TEST
+        
         rois = find_ROIs(data, **params)
-        cropped, _ = crop_ROI(data, rois[0], shape=crop_shape)
+        cropped, _, _ = crop_ROI(data, rois[0], shape=crop_shape)
         yield cropped
 ################################################
 def generateCircle(center_x, center_y):
@@ -90,7 +120,7 @@ def generateCircle(center_x, center_y):
 ################################################
 def generateEllipse():    
     center_x, center_y = tf.random.uniform(shape=[2], minval=32-10, maxval=32+10)
-    minorAxis =  tf.random.uniform(shape=[1], minval=1, maxval=5)
+    minorAxis =  tf.random.uniform(shape=[1], minval=1, maxval=7)
     majorAxis =  tf.random.uniform(shape=[1], minval=5, maxval=40)
     phi = tf.random.uniform(shape=[1], minval=0, maxval=np.pi)
     rr, cc = skimage.draw.ellipse(r=center_x, c=center_y, r_radius=minorAxis[0], c_radius=majorAxis[0], shape=crop_shape, rotation=phi[0])
@@ -98,34 +128,27 @@ def generateEllipse():
     ellipse[rr, cc] = 1
     return ellipse
 ################################################
-def generateRectangle(center_x, center_y):
+def generateRectangle():
+    center_x, center_y = tf.random.uniform(shape=[2], minval=32-10, maxval=32+10)
     xx, yy = tf.meshgrid(tf.range(0,crop_shape[0], dtype=tf.float32), tf.range(0,crop_shape[1], dtype=tf.float32))
-    a,b = tf.random.uniform(shape=[2], minval=10, maxval=50)
+    a = tf.random.uniform(shape=[1], minval=4, maxval=5)
+    b = tf.random.uniform(shape=[1], minval=10, maxval=50)
+    phi = tf.random.uniform(shape=[1], minval=0, maxval=np.pi)
     rectangle = tf.math.logical_and(np.abs(xx - center_x)<a/2, np.abs(yy - center_y)<b/2)
+    rectangle = tf.cast(rectangle,tf.float32)
     rectangle = tf.reshape(rectangle, crop_shape)
+    rectangle = tfa.image.rotate(rectangle, tf.constant(phi))
+    rectangle = tf.cast(rectangle,tf.bool)
     return rectangle
 ################################################
-def generateLine():
-    xx, yy = tf.meshgrid(tf.range(0,crop_shape[0], dtype=tf.float32), tf.range(0,crop_shape[1], dtype=tf.float32))
-    phi = tf.random.uniform(shape=[1], minval=0, maxval=np.pi)
-    tanPhi = tf.tan(phi)
-    center_x, center_y = tf.random.uniform(shape=[2], minval=32-10, maxval=32+10)
-    lenght = tf.random.uniform(shape=[1], minval=5, maxval=40)
-    width = tf.random.uniform(shape=[1], minval=1, maxval=5)
-    circle_equation = tf.sqrt((xx - center_x) ** 2 + (yy - center_y) ** 2)
-    line_equation = (yy-center_y) - tanPhi*(xx-center_x)
-    rectangle = tf.math.logical_and(tf.abs(line_equation)<width, circle_equation<lenght)
-    rectangle = tf.reshape(rectangle, crop_shape)
-    return rectangle
 ################################################
 def generateEmpty(center_x, center_y):
     return np.zeros(crop_shape)
 ################################################
 def shapes_images_generator():
-    for number in range(0,32000):
-        aRandom = tf.random.uniform(shape=[1], minval=0, maxval=1)    
-        #image = generateLine()
-        image = generateEllipse()
+    for number in range(0,64000): 
+        image = generateRectangle()
+        #image = generateEllipse()
         yield image
 ################################################ 
 def saveVAE(vae, tag):      
