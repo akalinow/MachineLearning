@@ -3,6 +3,7 @@ import struct
 import functools
 import sys
 import numpy as np
+import tensorflow as tf
 
 ## Input data shapes
 nStrips=256
@@ -97,66 +98,36 @@ fields = [
     #"SimEvent/tracks/tracks.prim.fourMomentum",
     #"Event/myChargeMap",
     "Event/myChargeArray*",
-    "SimEvent/tracks/tracks.truncatedStartPosUVWT.*",
-    "SimEvent/tracks/tracks.truncatedStopPosUVWT.*",
+    #"SimEvent/tracks/tracks.truncatedStartPosUVWT.*",
+    #"SimEvent/tracks/tracks.truncatedStopPosUVWT.*",
 ]
 ################################
 ################################
-def extractData(array, batchSize):
+def generator(files, batchSize):
+    for array in uproot.iterate(files, step_size=batchSize, 
+                                filter_name=fields, 
+                                num_workers = 4, 
+                                library="ak"):
+      
+        fX = array['tracks.startPos']['fX'].to_numpy()
+        fY = array['tracks.startPos']['fY'].to_numpy()
+        fZ = array['tracks.startPos']['fZ'].to_numpy()
+        startPos = np.stack([fX, fY, fZ], axis=1)[:,:,[0]]
     
-    startUVWT = np.array(tuple(zip(*[array[f"tracks.truncatedStartPosUVWT.{direction}"][:] for direction in ["U", "V", "W", "T"]])))
-    stopUVWT = np.array(tuple(zip(*[array[f"tracks.truncatedStopPosUVWT.{direction}"][:] for direction in ["U", "V", "W", "T"]])))
+        fX = array['tracks.stopPos']['fX'].to_numpy()
+        fY = array['tracks.stopPos']['fY'].to_numpy()
+        fZ = array['tracks.stopPos']['fZ'].to_numpy()
+        stopPos = np.stack([fX, fY, fZ], axis=1)
     
-    iPart=0
-    iEvent = 0
-    startXYZ = array["tracks.startPos"][iEvent][iPart]
-    startXYZ = tvecToArray(startXYZ)
-    
-    stopXYZ_part0 = array["tracks.stopPos"][iEvent][iPart]
-    stopXYZ_part0 = tvecToArray(stopXYZ_part0)
-    
-    iPart=1
-    stopXYZ_part1 = array["tracks.stopPos"][iEvent][iPart]
-    stopXYZ_part1 = tvecToArray(stopXYZ_part1)
-    
-    targetXYZ = np.append(startXYZ, (stopXYZ_part0, stopXYZ_part1))
-    targetUVWT = np.append(startUVWT[:,:,iPart][iEvent], 
-                           (stopUVWT[:,:,0][iEvent],stopUVWT[:,:,1][iEvent]))
-                                               
-    projections = array["myChargeArray[3][3][256][512]"]
-    projections = np.sum(projections, axis=2)
-    projections = np.moveaxis(projections, 1, -1)
-     
-    return projections[0], targetXYZ 
-################################
-################################
-def extractData_XYZ_UVWT(array, batchSize):
-    
-    startUVWT = np.array(tuple(zip(*[array[f"tracks.truncatedStartPosUVWT.{direction}"][:] for direction in ["U", "V", "W", "T"]])))
-    stopUVWT = np.array(tuple(zip(*[array[f"tracks.truncatedStopPosUVWT.{direction}"][:] for direction in ["U", "V", "W", "T"]])))
-    
-    iPart = 0
-    iEvent = 0
-    startXYZ = array["tracks.startPos"][iEvent][iPart]
-    startXYZ = tvecToArray(startXYZ)
-    
-    stopXYZ = array["tracks.stopPos"][iEvent][iPart]
-    stopXYZ = tvecToArray(stopXYZ)
-             
-    return stopXYZ, stopUVWT[0,:,0]
-################################
-################################
-def generator(files):
-    batchSize = 1 
-    for array in uproot.iterate(files, step_size=batchSize, filter_name=fields, library="np"):
-        dataRow = extractData(array, batchSize)
-        yield dataRow
-################################
-################################
-def generator_XYZ_UVWT(files):
-    batchSize = 1 
-    for array in uproot.iterate(files, step_size=batchSize, filter_name=fields, library="np"):
-        dataRow = extractData_XYZ_UVWT(array, batchSize)
-        yield dataRow
+        target = np.concatenate([startPos, stopPos], axis=2)
+        target /= 100.0
+        
+        features = array["myChargeArray[3][3][256][512]"].to_numpy()
+        features = features.astype(float)
+        features = np.sum(features, axis=2)
+        features = np.moveaxis(features, 1, -1)
+        features /= np.amax(features, axis=(1,2,3), keepdims=True)
+       
+        yield features, target.reshape(batchSize, -1, order='F')
 ################################
 ################################ 

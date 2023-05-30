@@ -29,10 +29,13 @@ df = pd.DataFrame(columns=["GEN_X", "GEN_Y", "GEN_Z",
                             
 ###################################################
 ###################################################
-def fillPandasDataset(aBatch, df, model):    
+def fillPandasDataset(aBatch, df, model):   
+    
+    scale = 100
+    
     features = aBatch[0]
-    labels = aBatch[1]
-    modelAnswer = model(features)
+    labels = aBatch[1]*scale
+    modelAnswer = model(features)*scale
     
     batch_df = pd.DataFrame(data=np.column_stack((labels,modelAnswer)),
                             columns = df.columns)
