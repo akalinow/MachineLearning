@@ -47,7 +47,7 @@ def XYZtoUVWT(data):
     referencePoint = np.array([-138.9971, 98.25])
     phi = np.pi/6.0
     stripPitch = 1.5
-    f = 1.0/12.5*4.05
+    f = 1.0/25*6.46   
     u = -(data[1]-99.75)
     v = (data[0]-referencePoint[0])*np.cos(phi) - (data[1]-referencePoint[1])*np.sin(phi)
     w = (data[0]-referencePoint[0])*np.cos(-phi) - (data[1]-referencePoint[1])*np.sin(-phi) + 98.75

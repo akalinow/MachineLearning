@@ -45,9 +45,9 @@ def plotEvent(data, model):
     projNames = ("U", "V", "W")
     fig, axes = plt.subplots(1,3, figsize=(28,10))
     
+    iEvent = 0
     projections = data[0]
     labels = data[1]
-    iEvent = 0
     
     for iProj in range(0,3):
         axis = axes[iProj] 
@@ -245,6 +245,7 @@ def plotLengthPullEvolution(df):
         axes[0].hist(df["d_RECO_part"+str(partIdx)], bins=bins, density=True, label=label+" RECO", alpha=0.6)
         axes[0].set_xlabel("length [mm]")
         axes[0].set_ylabel("#events")
+        axes[0].set_xlim(-5,100)
         axes[0].legend(bbox_to_anchor=(1.1,1), loc='upper left')
         
         df_grouped = df.groupby(by=binWidth*(df["d_GEN_part"+str(partIdx)]/binWidth).astype(int))
@@ -252,8 +253,11 @@ def plotLengthPullEvolution(df):
         y = df_grouped["pull_part"+str(partIdx)].mean()
 
         axes[1].plot(x, y, ".", label=label)
+        axes[1].plot((x.min(), x.max()), (0,0), color='black')
         axes[1].set_xlabel("GEN length [mm]")
         axes[1].set_ylabel("RECO-GEN [mm]")
+        axes[1].set_xlim(-5,100)
+        axes[1].set_ylim(-5,5)
         
         df_grouped = df.groupby(by=binWidth*(df["GEN_StartPosX"]/binWidth).astype(int))
         x = df_grouped["GEN_StartPosX"].mean()
@@ -261,6 +265,7 @@ def plotLengthPullEvolution(df):
         axes[2].set_xlabel("GEN vertex X [mm]")
         axes[2].set_ylabel("RECO-GEN [mm]")
         axes[2].plot(x, y, ".", label=label)
+        axes[2].plot((x.min(), x.max()), (0,0), color='black')
     
     plt.subplots_adjust(bottom=0.05, left=0.05, right=0.95, hspace=0.5, wspace=0.3) 
     plt.savefig("fig_png/length_pull_vs_gen.png", bbox_inches="tight")

@@ -48,7 +48,9 @@ The cartesian coordinates of the detector are as follows:
 * 3D cartesian positions of the vertex, and tracks endpoints, **9** numbers in total:
 
   $X_{\text{vertex}}, Y_{\text{vertex}}, Z_{\text{vertex}}$  
-  $X_{\alpha~\text{end point}}, Y_{\alpha~\text{end point}}, Z_{\alpha~\text{end point}}$, <br>
+  
+  $X_{\alpha~\text{end point}}, Y_{\alpha~\text{end point}}, Z_{\alpha~\text{end point}}$, 
+  
   $X_{\text{carbon~end point}}, Y_{\text{carbon~end point}}, Z_{\text{carbon~end point}}$
 
 ## Code organisation:
