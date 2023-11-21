@@ -135,3 +135,39 @@ def generator(files, batchSize, features_only=False):
             yield features, target.reshape(batchSize, -1, order='F')
 ################################
 ################################
+def minimal_generator(files, batchSize, features_only=False):
+    for array in uproot.iterate(files, step_size=batchSize, 
+                                filter_name=fields, 
+                                num_workers = 4,
+                                use_threads = True,
+                                library="ak"):
+        
+        features = array["myChargeArray[3][3][256][512]"]
+        
+        if features_only:
+            yield features, np.full((batchSize, 9), 0.0) 
+        else:    
+            fX = array['tracks.startPos']['fX'].to_numpy()
+            fY = array['tracks.startPos']['fY'].to_numpy()
+            fZ = array['tracks.startPos']['fZ'].to_numpy()
+            startPos = np.stack([fX, fY, fZ], axis=1)[:,:,[0]]
+
+            fX = array['tracks.stopPos']['fX'].to_numpy()
+            fY = array['tracks.stopPos']['fY'].to_numpy()
+            fZ = array['tracks.stopPos']['fZ'].to_numpy()
+            stopPos = np.stack([fX, fY, fZ], axis=1)
+
+            target = np.concatenate([startPos, stopPos], axis=2)
+            target /= 100.0
+
+            yield features, target.reshape(batchSize, -1, order='F')
+
+def proc_features(features):
+    features = features.to_numpy()
+    features = features.astype(float)
+    features = np.sum(features, axis=2)
+    features = np.moveaxis(features, 1, -1)
+    features /= np.amax(features, axis=(1,2,3), keepdims=True)
+    features = (features>0.05)*features
+
+    return features
