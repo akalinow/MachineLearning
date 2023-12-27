@@ -1,10 +1,11 @@
 from datetime import datetime  
-import uproot
 from functools import partial
 import numpy as np
 import tensorflow as tf
 import importlib
+from tensorflow.keras import regularizers
 
+regularizer = regularizers.l2(0.01)
 from tensorflow.python.ops.numpy_ops import np_config
 np_config.enable_numpy_behavior()
 
@@ -42,20 +43,22 @@ test_dataset = test_dataset.batch(batchSize)
 
 model = tf.keras.Sequential([
   tf.keras.layers.InputLayer(input_shape = (256, 512, 3)), 
-  tf.keras.layers.Conv2D(16, 5, padding='same', activation='relu', 
-                         data_format="channels_last"),
-  tf.keras.layers.MaxPooling2D(),
-  tf.keras.layers.Conv2D(32, 5, padding='same', activation='relu', 
-                         data_format="channels_last"),
-  tf.keras.layers.MaxPooling2D(),
-  tf.keras.layers.Conv2D(64, 5, padding='same', activation='relu', 
-                         data_format="channels_last"),
-  tf.keras.layers.MaxPooling2D(),
-  tf.keras.layers.Flatten(),
-  tf.keras.layers.Dense(128, activation='relu'),
-  tf.keras.layers.Dense(128, activation='relu'), 
-  tf.keras.layers.Dense(128, activation='relu'),
-  tf.keras.layers.Dense(9)
+    tf.keras.layers.Conv2D(16, 5, padding='same', activation='relu', data_format="channels_last", input_shape=(256, 512, 1), kernel_regularizer=regularizer),
+    tf.keras.layers.MaxPooling2D(),
+    tf.keras.layers.Dropout(0.3),
+    tf.keras.layers.Conv2D(32, 5, padding='same', activation='relu', data_format="channels_last", kernel_regularizer=regularizer),
+    tf.keras.layers.MaxPooling2D(),
+    tf.keras.layers.Dropout(0.3),
+    tf.keras.layers.Conv2D(64, 5, padding='same', activation='relu', data_format="channels_last", kernel_regularizer=regularizer),
+    tf.keras.layers.MaxPooling2D(),
+    tf.keras.layers.Dropout(0.3),
+    tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(128, activation='relu', kernel_regularizer=regularizer),
+    tf.keras.layers.Dropout(0.2),
+    tf.keras.layers.Dense(64, activation='relu', kernel_regularizer=regularizer),
+    tf.keras.layers.Dropout(0.2),
+    tf.keras.layers.Dense(32, activation='relu', kernel_regularizer=regularizer),
+    tf.keras.layers.Dense(9)
 ])
 
 initial_learning_rate = 0.001
