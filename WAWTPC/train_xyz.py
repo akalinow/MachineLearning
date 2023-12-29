@@ -42,23 +42,23 @@ train_dataset = train_dataset.batch(batchSize)
 test_dataset = test_dataset.batch(batchSize)
 
 model = tf.keras.Sequential([
-  tf.keras.layers.InputLayer(input_shape = (256, 512, 3)), 
-    tf.keras.layers.Conv2D(16, 5, padding='same', activation='relu', data_format="channels_last", input_shape=(256, 512, 1), kernel_regularizer=regularizer),
-    tf.keras.layers.MaxPooling2D(),
-    tf.keras.layers.Dropout(0.3),
-    tf.keras.layers.Conv2D(32, 5, padding='same', activation='relu', data_format="channels_last", kernel_regularizer=regularizer),
-    tf.keras.layers.MaxPooling2D(),
-    tf.keras.layers.Dropout(0.3),
-    tf.keras.layers.Conv2D(64, 5, padding='same', activation='relu', data_format="channels_last", kernel_regularizer=regularizer),
-    tf.keras.layers.MaxPooling2D(),
-    tf.keras.layers.Dropout(0.3),
-    tf.keras.layers.Flatten(),
-    tf.keras.layers.Dense(128, activation='relu', kernel_regularizer=regularizer),
-    tf.keras.layers.Dropout(0.2),
-    tf.keras.layers.Dense(64, activation='relu', kernel_regularizer=regularizer),
-    tf.keras.layers.Dropout(0.2),
-    tf.keras.layers.Dense(32, activation='relu', kernel_regularizer=regularizer),
-    tf.keras.layers.Dense(9)
+  tf.keras.layers.InputLayer(input_shape = (256, 512, 3)),
+  #tf.keras.layers.Resizing(height=128, width=128), 
+  #tf.keras.layers.GaussianNoise(stddev=0.1),
+  tf.keras.layers.Conv2D(16, 5, padding='same', activation='relu', 
+                         data_format="channels_last"),
+  tf.keras.layers.MaxPooling2D(),
+  tf.keras.layers.Conv2D(32, 5, padding='same', activation='relu', 
+                         data_format="channels_last"),
+  tf.keras.layers.MaxPooling2D(),
+  tf.keras.layers.Conv2D(64, 5, padding='same', activation='relu', 
+                         data_format="channels_last"),
+  tf.keras.layers.MaxPooling2D(),
+  tf.keras.layers.Flatten(),
+  tf.keras.layers.Dense(128, activation='relu'),
+  tf.keras.layers.Dense(128, activation='relu'), 
+  tf.keras.layers.Dense(128, activation='relu'),
+  tf.keras.layers.Dense(9)
 ])
 
 initial_learning_rate = 0.001
@@ -71,7 +71,7 @@ optimizer = tf.keras.optimizers.RMSprop(learning_rate=lr_schedule)
 model.compile(optimizer = optimizer, 
               loss = 'mse', 
               metrics=['mse'])
-
+              
 log_dir = "logs/fit/" + datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1, profile_batch=(10, 20))
 early_stop_callback = tf.keras.callbacks.EarlyStopping(patience=5, verbose=1)
