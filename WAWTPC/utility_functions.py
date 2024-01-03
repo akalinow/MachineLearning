@@ -26,21 +26,50 @@ df = pd.DataFrame(columns=["GEN_X", "GEN_Y", "GEN_Z",
                            "RECO_U", "RECO_V", "RECO_W", "RECO_T"
                             ])  
 '''                            
-                            
-###################################################
-###################################################
-def fillPandasDataset(aBatch, df, model):   
+def fillPandasDataset(aBatch, df, model, uvwt_mode = False):   
     
     scale = 100
     
-    features = aBatch[0]
-    labels = aBatch[1]*scale
-    modelAnswer = model(features)*scale
+    if uvwt_mode:
+      modelAnswer = UVWTtoXYZ(model(aBatch[0]))*scale
+      features, labels = batch_to_xyz(aBatch)
+      labels *= scale
+    else:
+      features = aBatch[0]
+      labels = aBatch[1]*scale
+      modelAnswer = model(features)*scale
     
     batch_df = pd.DataFrame(data=np.column_stack((labels,modelAnswer)),
                             columns = df.columns)
                                
     return pd.concat((df, batch_df), ignore_index=True).astype('float32')
+
+def UVWTtoXYZ(data):
+    referencePoint = np.array([-138.9971, 98.25])
+    phi = np.pi/6.0
+    stripPitch = 1.5
+    f = 1.0/25*6.46
+    data = data.reshape(3, 3, 2)
+
+    # Reverse the scaling by stripPitch
+    u = data[0, :, 1] * stripPitch
+    v = data[1, :, 1] * stripPitch
+    w = data[2, :, 1] * stripPitch
+    t = data[0, :, 0]
+
+    # Reverse the operations to compute u, v, w, t
+    y = -u + 99.75
+    x = (v + w - 98.75) / (2 * np.cos(phi)) + referencePoint[0]
+    z = (t - 256) * f
+    data_xyz = np.vstack([x, y, z]).T.flatten() / 100
+    return data_xyz.reshape(1, -1)
+
+def batch_to_xyz(batch):
+  image, target = batch
+  target_xyz = UVWTtoXYZ(target) 
+  image = np.transpose(image, (3, 1, 2, 0))
+  return (image, target_xyz)
+
 ###################################################
 ###################################################
 def XYZtoUVWT(data):

@@ -39,12 +39,14 @@ def plotEndpoints(data, iProj, axis, label, color):
         axis.plot(uvwt[3], uvwt[iProj], marker='.', markersize=20, alpha=0.8, color=color)
 ###################################################
 ###################################################
-def plotEvent(data, model):
+def plotEvent(data, model, uvwt_mode=False):
 
     #data indexing: data[features/label][element in batch][index in features/label]
     projNames = ("U", "V", "W")
     fig, axes = plt.subplots(1,3, figsize=(28,10))
-    
+    if uvwt_mode:
+      data = utils.batch_to_xyz(data)
+
     iEvent = 0
     projections = data[0]
     labels = data[1]
@@ -61,8 +63,12 @@ def plotEvent(data, model):
         sy, sx = rois[0]['slice']
         
         if model!=None:
+          if uvwt_mode:
+            projections_uvwt = np.transpose(projections, (3, 1, 2, 0))
+            modelResponse = utils.UVWTtoXYZ(model(projections_uvwt))[iEvent]
+          else:
             modelResponse = model(projections)[iEvent]
-            plotEndpoints(modelResponse, iProj, axis, color="blue", label="NN")         
+          plotEndpoints(modelResponse, iProj, axis, color="blue", label="NN")          
         axis.set_xlabel("time bin")
         axis.set_ylabel(projNames[iProj]+" strip")
         axis.set_xlim(sx.start-5, sx.stop+5)
