@@ -12,8 +12,8 @@ from matplotlib.patches import Rectangle
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 
 import utility_functions as utils
-###################################################
-###################################################
+
+
 params = {'legend.fontsize': 'xx-large',
           'figure.figsize': (14, 10),
          'axes.labelsize': 'xx-large',
@@ -24,8 +24,8 @@ params = {'legend.fontsize': 'xx-large',
          }
 
 plt.rcParams.update(params)
-###################################################
-###################################################
+
+
 def plotEndpoints(data, iProj, axis, label, color):
 
         scale = 100
@@ -37,8 +37,8 @@ def plotEndpoints(data, iProj, axis, label, color):
         
         uvwt =  utils.XYZtoUVWT(scale*data[6:9])
         axis.plot(uvwt[3], uvwt[iProj], marker='.', markersize=20, alpha=0.8, color=color)
-###################################################
-###################################################
+
+
 def plotEvent(data, model, axlim = False, uvwt_mode=False):
     #data indexing: data[features/label][element in batch][index in features/label]
     projNames = ("U", "V", "W")
@@ -84,8 +84,8 @@ def plotEvent(data, model, axlim = False, uvwt_mode=False):
         
         plt.subplots_adjust(bottom=0.15, left=0.05, right=0.95, wspace=0.3)
         plt.savefig("fig_png/event.png", bbox_inches="tight")
-###################################################################### 
-###################################################################### 
+
+
 def find_ROIs(img, thr=10, size_thr=0):
     s = ndimage.generate_binary_structure(2,2) #(2,1)
     x = tf.math.greater(img, thr)
@@ -104,8 +104,8 @@ def find_ROIs(img, thr=10, size_thr=0):
     result = sorted(result,key=lambda x: x["size"], reverse=True)
 
     return result
-###################################################################### 
-###################################################################### 
+
+
 def plot_ROIs(rois, axis):
      import matplotlib.transforms as transforms
      for roi in rois:
@@ -123,8 +123,8 @@ def plot_ROIs(rois, axis):
                                  linewidth=1, edgecolor='r',facecolor='none'
                                  ))
         break #plot only the first ROI
-###################################################################### 
-###################################################################### 
+
+ 
 def crop_ROIs(image, rois):
      width = 64
      threshold = 0.05   
@@ -144,8 +144,8 @@ def crop_ROIs(image, rois):
         cropped = tf.pad(cropped, ((xPad,0),(yPad,0)))
         return cropped
      return np.zeros((width,width))
-###################################################################### 
-######################################################################   
+
+  
 def cropROI(item):
     
     params = {
@@ -156,8 +156,8 @@ def cropROI(item):
     rois = find_ROIs(image, **params)
     cropped = crop_ROIs(image, rois)
     return cropped
-###################################################################### 
-######################################################################
+
+
 def plotTrainHistory(history):
     
     fig, axes = plt.subplots(1,2, figsize=(10,3))
@@ -176,8 +176,8 @@ def plotTrainHistory(history):
     
     plt.subplots_adjust(bottom=0.02, left=0.02, right=0.98, hspace=0.5)
     plt.savefig("fig_png/training_history.png", bbox_inches="tight")
-###################################################
-###################################################
+
+
 def plotLengthPull(df, partIdx):
     
     d_GEN = np.sqrt((df["GEN_StopPosX_Part"+str(partIdx)] - df["GEN_StartPosX"])**2 + 
@@ -233,8 +233,8 @@ def plotLengthPull(df, partIdx):
 
     plt.subplots_adjust(bottom=0.05, left=0.05, right=0.95, hspace=0.3, wspace=0.3) 
     plt.savefig("fig_png/length_pull_part_"+str(partIdx)+".png", bbox_inches="tight")
-###################################################
-################################################### 
+
+
 def plotLengthPullEvolution(df):
     
     fig, axes = plt.subplots(3,1, figsize=(6,9))
@@ -278,8 +278,8 @@ def plotLengthPullEvolution(df):
     
     plt.subplots_adjust(bottom=0.05, left=0.05, right=0.95, hspace=0.5, wspace=0.3) 
     plt.savefig("fig_png/length_pull_vs_gen.png", bbox_inches="tight")
-###################################################
-###################################################
+
+
 def plotEndPointRes(df, edge, partIdx):
     
     fig, axes = plt.subplots(2,2, figsize=(8,8))
@@ -311,8 +311,8 @@ def plotEndPointRes(df, edge, partIdx):
     axes[1,1].set_visible(False)        
     plt.subplots_adjust(bottom=0.05, left=0.05, right=0.95, hspace=0.3, wspace=0.3) 
     plt.savefig("fig_png/"+edge+"_endpoint_resolution_part_"+str(partIdx)+".png", bbox_inches="tight")          
-###################################################
-###################################################    
+
+   
 def controlPlots(df):
     
     fig, axes = plt.subplots(2,2, figsize=(8,8))
@@ -344,8 +344,8 @@ def controlPlots(df):
 
     plt.subplots_adjust(bottom=0.05, left=0.05, right=0.95, hspace=0.3, wspace=0.3)   
     plt.savefig("fig_png/gen_endPos.png", bbox_inches="tight")
-###################################################
-###################################################
+
+
 def plotOpeningAngleCos(df):
     
     fig, axes = plt.subplots(1,2, figsize=(10,5))
@@ -365,5 +365,3 @@ def plotOpeningAngleCos(df):
     axes[1].hist((GEN_cosAlpha-RECO_cosAlpha)/(-1-GEN_cosAlpha), bins=np.linspace(-2, 2, 40), label=label);
     axes[1].set_xlabel(r'$\frac{cos(\alpha^{RECO}) - cos(\alpha^{GEN})}{-1-cos(\alpha^{GEN})}$')
     axes[1].legend()
-###################################################
-###################################################   
