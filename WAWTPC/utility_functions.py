@@ -3,8 +3,8 @@ import os, glob
 import tensorflow as tf
 import pandas as pd
 import numpy as np
-###################################################
-###################################################
+
+
 df = pd.DataFrame(columns=["GEN_StartPosU", "GEN_StartPosV", "GEN_StartPosW", "GEN_StartPosT",
                            "GEN_StopPosU", "GEN_StopPosV", "GEN_StopPosW", "GEN_StopPosT",
                            "RECO_StartPosU", "RECO_StartPosV", "RECO_StartPosW", "RECO_StartPosT",
@@ -70,8 +70,8 @@ def batch_to_xyz(batch):
   image = np.transpose(image, (3, 1, 2, 0))
   return (image, target_xyz)
 
-###################################################
-###################################################
+
+
 def XYZtoUVWT(data):
     referencePoint = np.array([-138.9971, 98.25])
     phi = np.pi/6.0
@@ -85,8 +85,8 @@ def XYZtoUVWT(data):
     v/=stripPitch
     w/=stripPitch
     return np.array((u,v,w,t)).T
-###################################################
-###################################################
+
+
 def getOpeningAngleCos(df, algoType):
     
     start = df[[algoType+"_StartPosX", algoType+"_StartPosY", algoType+"_StartPosZ"]].to_numpy()
@@ -103,5 +103,3 @@ def getOpeningAngleCos(df, algoType):
 
     cosAlpha = np.sum(track1*track2, axis=1)
     return cosAlpha
-###################################################
-###################################################
