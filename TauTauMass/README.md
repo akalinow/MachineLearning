@@ -13,8 +13,7 @@ a [akalinow/tensorflow-gpu](https://hub.docker.com/repository/docker/akalinow/te
 
 The test data is a full simulation of the CMS detector response for a H->tau tau with mass 125 GeV. 
 
-The data files are available on Google drive:
-[https://drive.google.com/drive/u/2/folders/168EWk6ocYPX8QcDTqOzPv6F0rEXW0V-3](https://drive.google.com/drive/u/2/folders/168EWk6ocYPX8QcDTqOzPv6F0rEXW0V-3)
+The data files are available on Google drive: [link](https://drive.google.com/drive/u/1/folders/1c8CLaBtkunZwFS_2qEUzvQfKOg1rj9ZK)
 
 ## Setup the environment:
 ```
